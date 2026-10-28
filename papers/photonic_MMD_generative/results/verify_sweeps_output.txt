@@ -1,0 +1,21 @@
+# utils/verify_sweeps.py — 2026-10-16T09:57:45Z
+# command (from papers/photonic_MMD_generative):
+#   python utils/verify_sweeps.py outdir/sweep_fig2_bs_20261012-171533 outdir/sweep_fig3a_bs_20261012-161518 outdir/sweep_fig3a_bs_merlin_20261014-103535 outdir/sweep_fig3a_bs_rbm_tuned_20261015-181905 outdir/sweep_fig3b_sushi_20261012-161547 outdir/sweep_fig3b_sushi_butterfly_reference_attempt2_20261013-025553 outdir/sweep_fig3b_sushi_merlin_20261014-105935 outdir/sweep_fig3c_movies_haar_20261012-220440 outdir/sweep_fig3c_movies_haar_determinism_check_20261014-095550 outdir/sweep_fig3d_movies_butterfly_corrected_20261012-194459 outdir/sweep_fig3d_movies_butterfly_reference_20261013-040022 outdir/sweep_fig3e_movies_20261012-194346 outdir/sweep_fig3f_bio_20261012-205145 outdir/sweep_fig4a_pairwise_sushi_20261012-212708 outdir/sweep_fig4b_mushroom_20261012-214701 outdir/sweep_noise_study_merlin_20261014-122856 
+# excluded: sweep_sweep_selftest_* (coordinator self-tests), sweep_fig3d_movies_butterfly_reference_20261012-173812 (stopped, superseded)
+fig2_bs: runs=2 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3a_bs: runs=30 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3a_bs_merlin: runs=10 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3a_bs_rbm_tuned: runs=5 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3b_sushi: runs=20 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3b_sushi_butterfly_reference_attempt2: runs=5 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3b_sushi_merlin: runs=10 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3c_movies_haar: runs=60 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3c_movies_haar_determinism_check: runs=2 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3d_movies_butterfly_corrected: runs=36 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3d_movies_butterfly_reference: runs=60 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3e_movies: runs=15 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig3f_bio: runs=30 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig4a_pairwise_sushi: runs=25 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+fig4b_mushroom: runs=25 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=1 (one per candidate: OK) summary_recomputed=OK
+noise_study_merlin: runs=20 commit=['e7beb6a4f0a7b25298e44b37083fcdcb8ebeade9'] dirty=[True] datasets=2 (one per candidate: OK) summary_recomputed=OK
+# exit code: 0
