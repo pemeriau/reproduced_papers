@@ -1,0 +1,13 @@
+# power_of_QNN reproduction dependencies.
+# merlinquantum (PyPI; it pulls in perceval-quandela): the shared runtime imports
+# merlin and perceval at startup (runtime_lib/runtime.py) to log versions. The
+# Phase 03 experiments do not use it. User decision 2026-10-21. merlinquantum 0.4.x
+# requires torch<2.13; without the floor, uv picks torch 2.14 and falls back to
+# merlinquantum 0.3.1, which cannot import with perceval 1.3.
+numpy
+torch
+scipy
+scikit-learn
+matplotlib
+pytest
+merlinquantum>=0.4.2
