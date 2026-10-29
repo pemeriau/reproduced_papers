@@ -1,13 +1,15 @@
-"""Phase 05 comparison tables from the fair-comparison runs (K1, X1, X2).
+"""Phase 05 comparison tables from the fair-comparison runs (K1, X1-X4).
 
 Usage (from papers/power_of_QNN):
     python utils/summarize_fair_comparison.py --runs results/phase05_runs.json --output results/phase05_tables.md
 
-``--runs`` maps an experiment name (``fair_iris01_d8``, ...) to its run directory. The
-rules are the ones frozen in LOG.md "Phase 5 Comparison Plan" before any run:
+``--runs`` maps an experiment name (``fair_iris01_d8``, ...) to its run directory, or to a
+list of run directories whose models are merged into one table (for example a Phase 04
+design rerun under a Phase 05 protocol). Merged runs must share the dataset, training,
+and comparison settings exactly. The rules are the ones frozen in LOG.md "Phase 5 Comparison Plan" before any run:
 
 - primary metric: final training CE when the lr was selected on the training split (K1),
-  otherwise test CE (X1, X2); lower is better;
+  otherwise test CE (X1-X4); lower is better;
 - X beats Y only if mean(Y) - mean(X) exceeds both 0.005 and
   3 * sqrt(std_X^2 / n_X + std_Y^2 / n_Y); otherwise there is no resolved difference.
 
@@ -32,6 +34,33 @@ STANDARD_ERRORS = 3.0
 
 def _primary_split(metrics: dict) -> str:
     return "train" if metrics["comparison"]["selection_split"] == "train" else "test"
+
+
+def _merged_metrics(run_dirs: list[Path]) -> tuple[dict, dict[str, Path]]:
+    """Merge the models of runs that used the same protocol; map each model to its run."""
+    merged, owners = None, {}
+    for run_dir in run_dirs:
+        metrics = load_metrics(run_dir)
+        protocol = {
+            key: metrics[key]
+            for key in ("comparison", "training", "selection_seeds", "final_seeds")
+        }
+        snapshot = json.loads(
+            (run_dir / "config_snapshot.json").read_text(encoding="utf-8")
+        )
+        protocol["dataset"] = snapshot["dataset"]
+        if merged is None:
+            merged, reference = {**metrics, "models": {}}, protocol
+        elif protocol != reference:
+            raise ValueError(f"{run_dir} does not share the protocol of {run_dirs[0]}")
+        for name, entry in metrics["models"].items():
+            if name in owners:
+                raise ValueError(
+                    f"Model {name} appears in {owners[name]} and {run_dir}"
+                )
+            merged["models"][name] = entry
+            owners[name] = run_dir
+    return merged, owners
 
 
 def _checked_arrays(run_dir: Path, metrics: dict, name: str) -> dict:
@@ -68,12 +97,14 @@ def _decision(a: np.ndarray, b: np.ndarray) -> tuple[float, float, str]:
     return gap, threshold, verdict
 
 
-def _run_tables(experiment: str, run_dir: Path) -> tuple[list[str], dict]:
-    metrics = load_metrics(run_dir)
+def _run_tables(experiment: str, run_dirs: list[Path]) -> tuple[list[str], dict]:
+    metrics, owners = _merged_metrics(run_dirs)
     split = _primary_split(metrics)
     splits = metrics["comparison"]["splits"]
     lines = [
-        f"### {experiment} (`{run_dir.as_posix()}`)",
+        f"### {experiment} ("
+        + ", ".join(f"`{run_dir.as_posix()}`" for run_dir in run_dirs)
+        + ")",
         "",
         f"Primary metric: final {split} cross-entropy, mean ± std over "
         f"{metrics['comparison']['final_seeds']['count']} fresh seeds "
@@ -92,7 +123,7 @@ def _run_tables(experiment: str, run_dir: Path) -> tuple[list[str], dict]:
     ]
     per_seed, summary = {}, {}
     for name, entry in metrics["models"].items():
-        arrays = _checked_arrays(run_dir, metrics, name)
+        arrays = _checked_arrays(owners[name], metrics, name)
         per_seed[name] = arrays[f"{split}_loss"]
         hardware = entry.get("hardware", {})
         hardware_text = (
@@ -156,7 +187,7 @@ def _run_tables(experiment: str, run_dir: Path) -> tuple[list[str], dict]:
         )
     lines.append("")
     return lines, {
-        "run_dir": run_dir.as_posix(),
+        "run_dirs": [run_dir.as_posix() for run_dir in run_dirs],
         "models": summary,
         "decisions": decisions,
     }
@@ -177,8 +208,12 @@ def main() -> None:
         "",
     ]
     structured = {}
-    for experiment, run_dir in runs.items():
-        run_lines, structured[experiment] = _run_tables(experiment, Path(run_dir))
+    for experiment, run_dirs in runs.items():
+        if isinstance(run_dirs, str):
+            run_dirs = [run_dirs]
+        run_lines, structured[experiment] = _run_tables(
+            experiment, [Path(run_dir) for run_dir in run_dirs]
+        )
         lines += run_lines
     args.output.write_text("\n".join(lines), encoding="utf-8")
     args.output.with_suffix(".json").write_text(

@@ -126,7 +126,88 @@ trace d at the trained theta. It therefore scales roughly with ||theta||^2.
 - **Limits:**
   - The advantage disappears with theta in [0, 2pi] (tie).
   - It is a Fisher-geometry capacity statement on ideal hardware, not a learning result.
+    When trained (Phase 05), A8 was the worst learner of all models (I-07).
   - The photonic state space (2002 Fock states) is much larger than the qubit register (16).
 - **Evidence:** `outdir/run_20261025-102902`, `outdir/run_20261025-103433`,
   `outdir/run_20261025-103537`; LOG.md Amendment 4.
+
+
+## I-07: Higher effective dimension did not mean better learning, for qubit or photonic models (2026-10-28, Phase 05)
+
+- **Setting:** the same optimizer, init U[-1,1], 100 iterations, and a per-model lr selected on
+  held-out data (or training loss for the paper's d=8 task); 100 fresh seeds.
+- **Paper claim C-04 reversed:** at d=8 on Iris 0/1 the linear [4,2] (0.009) and the paper's
+  [4,1,1,1,2] (0.142) reach a lower training CE than the QNN (0.230). The paper's Table 1 ordering
+  came from one shared lr and an all-positive classical init.
+- **Photonic A8:** at d=40 it has the highest normalized effective dimension of all models
+  (Phase 4: 0.910 vs 0.893 for the qubit QNN). Yet it has the worst held-out CE on both Iris tasks
+  (0.44-0.46 vs 0.05-0.30), although its accuracy is >= 0.99: its outputs stay near 50/50.
+- **Lesson for photonic design searches:** effective dimension counts how many parameter
+  directions change the output distribution, not how far the class probability can move. Design
+  searches should also score output margin or a short training run, not effective dimension
+  alone.
+
+- **Follow-up (Amendment 5):** the cause is an output-margin ceiling of the 10-mode cluster design
+  (single-input max p ≈ 0.8), not parity readout in general. Searching capacity and loss together
+  selected B2 (6 modes / 3 photons, cluster input). B2 keeps the qubit-level effective dimension, and
+  on Iris 1/2 it beats both qubit QNNs and ties the classical models. It still loses on Iris 0/1.
+  Adding modes or a cluster input moves a design along a capacity-versus-loss trade-off.
+
+- **Out-of-selection check (X3 breast cancer, X4 MNIST 3 vs 5):** B2 beats both qubit QNNs on both
+  tasks (MNIST accuracy 0.824 vs 0.719), so the photonic-over-qubit result holds on tasks that
+  played no part in selection. Every quantum model, photonic or qubit, stays far behind an 8-parameter
+  linear classifier (MNIST 0.879). Among quantum models at matched d, a small cluster-input
+  photonic chip is the strongest learner tested here. No quantum model is competitive with
+  classical baselines on these tasks.
+
+Evidence: LOG.md "Phase 5 K1 result", "Phase 5 extension results X1, X2", "X3, X4"; "Amendment 5" screening and confirmation;
+`results/phase05_tables.md`; runs `outdir/run_20261028-152522`, `-155259`, `-160751`.
+
+## I-08: Practical heuristics for native photonic classifiers in MerLin (2026-10-29, Phases 04-05)
+
+- **Re-uploading first:** interleaving data encodings with trainable meshes was the largest
+  capacity lever (+0.27 normalized effective dimension). Feed-forward and PNR readout added
+  nothing here.
+- **Check for dead phases:** a phase after the last beam splitter on its mode never affects
+  detection. Order meshes PS -> BS, and test that every parameter has a nonzero gradient.
+- **Score both capacity and margin:**
+  - Before calling a design good, maximize p(target class) for a single input over all phases.
+    Values well below 1 (A8: about 0.8) predict a high cross-entropy floor whatever the capacity.
+  - Larger chips and emitter cluster inputs trade margin for capacity.
+  - 6 modes / 3 photons with a cluster input was the best compromise found (B2).
+- **Detector modelling:** `ComputationSpace.UNBUNCHED` postselects and renormalizes (37-43%
+  kept here). Threshold detection is FOCK simulation grouped by click pattern.
+- **Emitter states:** use `spin_gate(pi/2, 0)` everywhere for a linear cluster, or a pi/2
+  preparation followed by identity gates for GHZ. Project the emitter with `final`: tracing it
+  out (`final=None`) leaves a classical mixture.
+- **Per-sample parameters:** passing trainable phases as an `input_parameters` group gives one
+  parameter row per sample (needed for the Fisher). Columns follow name order, so name the
+  parameters so that name order equals circuit order.
+- **Cost:** simulation time grows with the Fock dimension. B2 (56 states) ran at 1-3x the qubit
+  QNN's wall-clock; A8 (2,002 states) at 35-160x.
+
+Evidence: LOG.md Amendments 2-5, "MerLin API Notes"; `results/phase04_design_screens.md`;
+`tests/test_photonic_merlin.py`; `ACTION_REQUIRED_SEND_TO_MERLIN_TEAM.md`.
+
+## I-09: Methodology lessons that changed verdicts in this reproduction (2026-10-29, Phases 01-05)
+
+- **Released raw arrays are the best oracle:**
+  - re-deriving a published curve from the authors' cache exposed the wrong classical model
+    (I-01);
+  - element-wise Fisher matching fixed the Hadamard convention.
+- **Tune every model's learning rate before comparing training speed.** A single shared lr plus
+  an all-positive classical init produced the paper's Table 1 ranking. Per-model selection on
+  held-out data reversed it (C-04).
+- **Normalized quantities hide scale:**
+  - the normalized Fisher spectrum looked stable while the unnormalized trace halved per qubit
+    (I-02);
+  - the Fisher-Rao norm followed ‖θ‖² (I-03).
+- **Confirm a selected design on data it was not selected on.** B2 was chosen on Iris 1/2. Its
+  advantage over the qubit QNN held (and grew) on breast cancer and MNIST 3 vs 5. A8's capacity
+  win did not survive the first learning test.
+- **Read "x% randomized labels" literally:** overwriting x% with uniform labels changes only
+  about x/2% of them.
+
+Evidence: LOG.md (paper-versus-code discrepancies, Phase 03 results, Phase 5 plan and results);
+`results/phase03_tables.md`, `results/phase05_tables.md`.
 

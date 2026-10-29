@@ -3,7 +3,7 @@
 Usage (from papers/power_of_QNN):
     python utils/plot_fair_comparison.py --runs results/phase05_runs.json --scope paper-accurate
 
-One row per run (K1, X1, X2): left, mean training cross-entropy ± std over the fresh
+One row per run (K1, X1-X4): left, mean training cross-entropy ± std over the fresh
 seeds at each model's selected lr; right, the primary metric (training CE for K1, test
 CE for X1/X2) with error bars of 3 standard errors, the resolution scale of the
 predeclared decision rule. Writes results/phase05_fair_comparison.png.
@@ -27,35 +27,57 @@ TITLES = {
     "fair_iris01_d8": "K1: Iris 0/1, d = 8, training CE (C-04)",
     "fair_iris01_d40": "X1: Iris 0/1, d = 40, held-out test CE",
     "fair_iris12_d40": "X2: Iris 1/2, d = 40, held-out test CE",
+    "fair_bcancer_d40": "X3: breast cancer (4 PCA features), d = 40, test CE",
+    "fair_mnist35_d40": "X4: MNIST 3 vs 5 (4 PCA features), d = 40, test CE",
 }
 
 
 def _color(name: str) -> str:
-    if name.startswith("A8"):
-        return "tab:purple"
-    if name.startswith(("Q", "easy")):
-        return "tab:blue" if not name.startswith("easy") else "tab:cyan"
-    return "tab:gray" if name == "classical_42" else "tab:orange"
+    prefixes = {
+        "A8": "tab:purple",
+        "B2": "tab:red",
+        "Q2": "tab:blue",
+        "Q3": "tab:green",
+        "easy": "tab:cyan",
+        "classical_42": "tab:gray",
+    }
+    for prefix, color in prefixes.items():
+        if name.startswith(prefix):
+            return color
+    return "tab:orange"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--runs", type=Path, required=True)
     parser.add_argument("--scope", required=True)
+    parser.add_argument(
+        "--name", default="phase05_fair_comparison", help="File stem under results/"
+    )
     args = parser.parse_args()
     runs = json.loads(args.runs.read_text(encoding="utf-8"))
     figure, axes = plt.subplots(
         len(runs), 2, figsize=(11, 3.6 * len(runs)), squeeze=False
     )
-    for row, (experiment, run_dir) in enumerate(runs.items()):
-        run_dir = Path(run_dir)
-        metrics = load_metrics(run_dir)
+    for row, (experiment, run_dirs) in enumerate(runs.items()):
+        # A list merges the models of runs that share one protocol (checked by the
+        # summary script); the first run supplies the protocol fields.
+        run_dirs = (
+            [Path(run_dirs)] if isinstance(run_dirs, str) else map(Path, run_dirs)
+        )
+        loaded = [(run_dir, load_metrics(run_dir)) for run_dir in run_dirs]
+        metrics = loaded[0][1]
+        entries = [
+            (run_dir, name, entry)
+            for run_dir, run_metrics in loaded
+            for name, entry in run_metrics["models"].items()
+        ]
         split = (
             "train" if metrics["comparison"]["selection_split"] == "train" else "test"
         )
         curve_axis, bar_axis = axes[row]
         names, means, errors, colors = [], [], [], []
-        for name, entry in metrics["models"].items():
+        for run_dir, name, entry in entries:
             mean = np.asarray(entry["loss_curve_mean"])
             std = np.asarray(entry["loss_curve_std"])
             steps = np.arange(len(mean))
@@ -93,7 +115,7 @@ def main() -> None:
     figure.tight_layout()
     _stamp(figure, args.scope)
     RESULTS_DIR.mkdir(exist_ok=True)
-    figure.savefig(RESULTS_DIR / "phase05_fair_comparison.png", dpi=150)
+    figure.savefig(RESULTS_DIR / f"{args.name}.png", dpi=150)
     plt.close(figure)
 
 

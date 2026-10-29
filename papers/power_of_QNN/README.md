@@ -1,6 +1,10 @@
-# The power of quantum neural networks - Reproduction
+# The power of quantum neural networks — Reproduction
 
-Status: Phase 04 complete (2026-10-22). All paper experiments except the IBM hardware run have been reproduced (Phase 03), and a native photonic MerLin adaptation has been evaluated (Phase 04).
+Status (2026-10-29): Phases 01-05 complete and audited.
+- **Reproduced:** every paper experiment except the IBM hardware run (Phase 03).
+- **Photonic adaptation:** a native MerLin design was built and searched (Phase 04).
+- **Fair comparison:** the quantum and classical models were compared fairly on Iris and on
+  two harder tasks (Phase 05).
 
 ## Reference and Attribution
 
@@ -13,49 +17,95 @@ Status: Phase 04 complete (2026-10-22). All paper experiments except the IBM har
 ## Original Paper
 
 The paper asks whether quantum neural networks (QNNs) can be more expressive and
-trainable than comparable classical neural networks. It introduces the
-effective dimension, a capacity measure built from the Fisher information
-matrix over the parameter space, links it to a generalization bound, and
-compares the Fisher eigenvalue spectra of a classical feed-forward network, an
-"easy" quantum model, and a QNN with a ZZ feature map. It reports that the QNN
-reaches a higher effective dimension, has a more uniform Fisher spectrum, and
-trains faster on Iris, including on IBM quantum hardware.
+trainable than comparable classical neural networks.
+- **Measure:** it introduces the *effective dimension*, a capacity measure built from the
+  Fisher information matrix over the parameter space, and links it to a generalization bound.
+- **Models compared:**
+  - a classical feed-forward network;
+  - an "easy" quantum model (Z feature map);
+  - a QNN with a ZZ feature map.
 
-## Reproduction Scope (incuding Updates and Deviations)
+  All have d = 40 parameters, 4 inputs and 2 outputs.
+- **Claims:**
+  - the QNN has a higher effective dimension and a more uniform Fisher spectrum;
+  - it resists barren plateaus;
+  - it trains to a lower loss on Iris, including on IBM quantum hardware.
 
-The claim and experiment inventories are in `LOG.md`.
-- **Planned paper experiments:**
-  - Fig. 2 and Fig. 3a (Fisher spectra and effective dimension at d=40);
-  - Fig. 9 (spectra at s_in = 6, 8, 10);
-  - Fig. 8 (sample-size sensitivity);
-  - Fig. 3b and Table 1 (Iris training loss and Fisher-Rao norm at d=8);
-  - Fig. 6 (effective dimension vs label randomization).
-- **Not reproduced:** the IBM ibmq_montreal hardware run (no QPU access). The generalization
-  bound (Theorems 3.2 and B.5) is documented, not tested.
+## Reproduction Scope, Claims, and Deviations
 
-Implementation choices and deviations:
+The full claim and experiment inventories are in `LOG.md`.
+
+**Reproduced (Phase 03, paper-accurate):**
+- Fig. 2 and Fig. 3a (Fisher spectra and effective dimension at d=40);
+- Fig. 9 (spectra at s_in = 6, 8, 10);
+- Fig. 8 (sample-size sensitivity);
+- Fig. 3b and Table 1 (Iris training loss and Fisher-Rao norm at d=8);
+- Fig. 6 (effective dimension vs label randomization).
+
+**Not reproduced:**
+- the IBM ibmq_montreal hardware run (no QPU access);
+- the generalization bound (Theorems 3.2, B.5), which is documented but not testable as stated.
+
+**Added beyond the paper:**
+- a native photonic (MerLin) adaptation and design search (Phase 04);
+- a fair, learning-rate-tuned comparison on Iris, breast cancer and MNIST 3 vs 5 (Phase 05).
+
+| Claim | Verdict |
+|---|---|
+| C-01: the QNN has a higher effective dimension than comparable classical and easy models (Fig. 3a) | **supported**; the published classical curve is a d=28 network |
+| C-02: the QNN Fisher spectrum is the most uniform; the classical one is degenerate (Fig. 2) | **supported** |
+| C-03: the QNN resists barren plateaus as qubits grow (Fig. 9, Sec. 4.3) | **partially supported**: the normalized shape holds, but the unnormalized Fisher scale vanishes exponentially |
+| C-04: the QNN trains to a lower loss than the classical net (Fig. 3b, Table 1) | Table 1 reproduced, but **unsupported** under fair tuning: both d=8 classical nets reach lower loss (Phase 05) |
+| C-05: the QNN has a ~250% higher Fisher-Rao norm (Table 1) | values reproduced; **unsupported** as a capacity statement (it reverses with the init range) |
+| C-07: effective dimension tracks generalization (Fig. 6) | **supported** |
+| C-08: effective dimension tends to the Fisher rank as n grows | **supported** |
+| C-11: 100 samples suffice for d <= 100 (Fig. 8) | **partially supported** (d <= 40 only) |
+| C-06: generalization bound (Thms 3.2, B.5) | not tested (theory) |
+| C-10: QNN trains as well on IBM hardware | not tested (no QPU) |
+
+**Implementation choices and deviations:**
 - **Framework:** the circuits are re-implemented as a batched PyTorch statevector simulator
-  (no Qiskit) with Qiskit 0.23 conventions:
-  - `ZZFeatureMap` and `ZFeatureMap` with `P(2x)` phases, and the Hadamard layer repeated
-    in every repetition;
+  (no Qiskit), with Qiskit 0.23 conventions:
+  - `ZZFeatureMap` / `ZFeatureMap` with `P(2x)` phases, and the Hadamard layer repeated in
+    every repetition;
   - `RealAmplitudes` with full entanglement;
   - parity readout.
 - **Validation (V-00):** fed the authors' random draws, this reproduces their cached Fig. 2
-  F_hat arrays element-wise to about 1e-14. Appendix A's "Hadamards once" reading does
-  *not* reproduce them.
-- **Gradients:** exact autograd instead of parameter shift for the Fisher (mathematically
-  identical, verified in tests). Exact autograd also replaces the authors' forward finite
-  differences (step 1e-10) for quantum training. The finite-difference variant is kept as
-  ablation A-04.
-- **Parameter domain:** the authors' code samples theta from U[0,1], while the paper states
-  [-1,1]. Both are configured (`*_original` vs `*_paper_domain`).
-- **Classical baselines:** the authors' classical networks are bias-free, with leaky-ReLU
-  hidden layers and softmax(tanh) for the Fisher. Extra fair baselines are configured:
-  - a topology search at d=40 (`topology_search_*`);
-  - the d=8 linear softmax model [4,2] (`training_iris_classical.json`).
-- **Iris:** all models train on the same 100 points (the authors' quantum scripts used 98).
-- **Loss curves:** they store L(theta_0..theta_T), i.e. T+1 values. The authors' torch loop
-  stored the first T values and their Qiskit ADAM the last T.
+  F_hat arrays element-wise to about 1e-14. Appendix A's "Hadamards once" reading does not.
+- **Gradients:** exact autograd replaces parameter shift for the Fisher (mathematically
+  identical, verified in tests) and the authors' forward finite differences for quantum
+  training. Finite differences are kept as ablation A-04.
+- **Parameter domain:** the authors' code samples theta from U[0,1]; the paper says [-1,1].
+  Both are configured (`*_original` vs `*_paper_domain`).
+- **Iris:** all models train on the same 100 points; the authors' quantum scripts used 98.
+- **Loss curves:** they store L(theta_0..theta_T). The authors' torch loop stored the first
+  T values and their Qiskit ADAM the last T.
+- **Fair comparison (Phase 05):** every model gets the same Adam optimizer, init U[-1,1] and
+  100 iterations, plus its own learning rate selected on held-out data. This deliberately
+  departs from the paper's single shared lr 0.1, two optimizers and mixed init ranges.
+
+## Project Layout
+
+```text
+papers/power_of_QNN/
+|-- README.md, LOG.md, INSIGHTS.md, FEEDBACK.md, VISITED_URLS.md, CONFLUENCE.md
+|-- requirements.txt, cli.json, notebook.ipynb
+|-- configs/            JSON configs (defaults, paper runs, ablations, MerLin, fair_* comparisons)
+|-- lib/
+|   |-- runner.py       train_and_evaluate(cfg, run_dir): dispatch on experiment.kind
+|   |-- quantum.py      qubit QNN / easy model (statevector)
+|   |-- classical.py    bias-free feed-forward networks, topology enumeration
+|   |-- fisher.py, fisher_experiments.py      Fisher, effective dimension, spectra, searches
+|   |-- training.py, training_experiments.py  seed-vectorized Adam training, Fig. 6
+|   |-- fair_comparison.py                    Phase 05 lr grid + selection + fresh seeds
+|   |-- photonic_merlin.py, qloq_merlin.py, feedforward_merlin.py   MerLin adaptations
+|   |-- data.py, models.py, plotting.py, reference.py, experiment_logging.py
+|-- tests/              55 tests (pytest)
+|-- utils/              table, figure and data-preparation scripts
+|-- results/            curated tables (*.md, *.json) and figures (*.png)
+|-- models/             empty: no trained model is kept
+`-- outdir/             raw run directories (not committed)
+```
 
 ## Install and How to Run
 
@@ -71,30 +121,50 @@ python implementation.py --paper power_of_QNN --config configs/reference_check.j
 python ../../implementation.py --config configs/effdim_d40_original.json
 ```
 
-Quick smoke commands (seconds, not paper results):
+Quick smoke commands (seconds, not results):
 
 ```bash
 python implementation.py --paper power_of_QNN
 python implementation.py --paper power_of_QNN --config configs/training_iris_original.json --iterations 3 --seeds-count 3
-python implementation.py --paper power_of_QNN --config configs/generalisation_reduced.json --iterations 20 --seeds-count 2
+python implementation.py --paper power_of_QNN --config configs/fair_smoke.json
 ```
 
-Paper-scale runs (all GREEN tier: minutes on a laptop CPU, or on a CUDA GPU with `--device cuda`):
+Full runs:
 
-| Config | Experiment |
-|---|---|
-| `reference_check.json` | V-00: comparison with the authors' cached arrays |
-| `effdim_d40_original.json` | Fig. 2, Fig. 3a, rank limit (E-01, E-02, E-08) |
-| `effdim_d40_paper_domain.json` | A-01: theta ~ U[-1,1] |
-| `effdim_d40_easy_ry.json` | A-03: RY angle encoding for the easy model |
-| `spectrum_scaling_original.json` | Fig. 9 (E-04) |
-| `sensitivity_classical.json` | Fig. 8 (E-05) |
-| `topology_search_d40_classical.json`, `topology_search_d40_relu_classical.json` | Fair classical baseline search (B-1, A-02) |
-| `training_iris_original.json` | Fig. 3b, Table 1 (E-03, E-03b) |
-| `training_iris_finite_difference.json` | A-04: finite-difference quantum gradients |
-| `training_iris_paper_domain.json` | A-01 for training: init U[-1,1] |
-| `training_iris_classical.json` | B-2: d=8 classical baselines; set `--lr` per grid point |
-| `generalisation_original.json`, `generalisation_reduced.json` | Fig. 6 (E-06), full and reduced |
+| Config | Experiment | Typical time |
+|---|---|---|
+| `reference_check.json` | V-00: comparison with the authors' cached arrays | seconds |
+| `effdim_d40_original.json`, `effdim_d40_paper_domain.json`, `effdim_d40_easy_ry.json` | Fig. 2 / 3a; A-01; A-03 | ~1 min |
+| `spectrum_scaling_original.json` | Fig. 9 | minutes |
+| `sensitivity_classical.json` | Fig. 8 | ~1 min |
+| `topology_search_d40_classical.json`, `topology_search_d40_relu_classical.json` | B-1 fair classical topology search | ~15 s |
+| `training_iris_original.json`, `training_iris_finite_difference.json`, `training_iris_paper_domain.json` | Fig. 3b / Table 1; A-04; A-01 | ~1 min |
+| `generalisation_original.json` (`_reduced`) | Fig. 6 | minutes |
+| `effdim_d40_merlin*.json`, `spectrum_scaling_merlin.json`, `training_iris_merlin.json` | Phase 04 adaptation | 1-9 min |
+| `design_*`, `tier3_*`, `tier4_*` | Phase 04 design searches (Amendments 2-5) | 1-98 min |
+| `fair_iris01_d8.json` | Phase 05 K1 (C-04) | ~27 min |
+| `fair_iris01_d40.json`, `fair_iris12_d40.json` | Phase 05 X1, X2 | ~15 min each |
+| `fair_bcancer_d40.json`, `fair_mnist35_d40.json` | Phase 05 X3, X4 | ~7 / ~11 min |
+| `tier4_confirm_iris01.json`, `tier4_confirm_iris12.json` | B2 under the X1 / X2 protocol | <1 min each |
+
+Times are for a laptop CPU (the Phase 03/04 GPU runs used NVIDIA L4s with `--device cuda`).
+
+**MerLin build:** configs with an emitter input (`input_kind: "cluster"` or `"ghz"`: the
+design searches, A8, B2 and every `fair_*` config) need `ML.EmitterState`. That is in the local
+`photonic_engines` MerLin fork (0.5.0.dev0), not in PyPI `merlinquantum` 0.4.x. The other
+MerLin configs run with the PyPI build. The emitter tests are skipped when `EmitterState` is
+missing.
+
+Result tables and figures are regenerated from the run directories:
+
+```bash
+python utils/summarize_results.py --runs results/phase03_runs.json --output results/phase03_tables.md
+python utils/summarize_merlin.py --runs results/phase04_runs.json --phase3-runs results/phase03_runs.json --output results/phase04_tables.md
+python utils/summarize_design_screens.py --runs results/phase04_design_runs.json --output results/phase04_design_screens.md
+python utils/summarize_fair_comparison.py --runs results/phase05_runs.json --output results/phase05_tables.md
+python utils/summarize_fair_comparison.py --runs results/phase04_amendment5_runs.json --output results/phase04_amendment5_tables.md
+python utils/plot_fair_comparison.py --runs results/phase05_runs.json --scope paper-accurate
+```
 
 ## Configuration
 
@@ -103,98 +173,99 @@ Paper-scale runs (all GREEN tier: minutes on a laptop CPU, or on a CUDA GPU with
 - `cli.json` is the authoritative paper-specific CLI schema: `--num-thetas`, `--num-inputs`,
   `--iterations`, `--lr`, `--seeds-count`.
 - Global flags (`--config`, `--outdir`, `--seed`, `--dtype`, `--device`, `--log-level`,
-  `--data-root`) come from the shared runtime. `dtype` must be float64, and MPS is rejected
+  `--data-root`) come from the shared runtime. `dtype` must be float64; MPS is rejected
   because it has no float64.
 - `experiment.kind` selects the experiment: `reference_check`, `fisher_effective_dimension`,
-  `sensitivity`, `topology_search`, `training`, or `generalisation`.
+  `sensitivity`, `topology_search`, `training`, `generalisation`, or `fair_comparison`.
+- Model types (`models[].type`): `qubit`, `classical`, `photonic`, `qloq`, `feedforward`.
+  Every key in `lib/models.py::build_model` is required.
 
 Each run writes `outdir/run_YYYYMMDD-HHMMSS/` with:
 - `run.log`, `config_snapshot.json`, `run_status.json`, `metrics.json`;
 - per-model arrays (`fisher_<model>.npz`, `sensitivity_<model>.npz`, `training_<model>.npz`,
-  `generalisation.npz`);
+  `comparison_<model>.npz`, `generalisation.npz`);
 - figures (`fig_*.png`).
 
 ## Data
 
-All data used by the paper is public and small; no download or login is required.
+Every dataset lives under `data/power_of_QNN/` (repository data root, `--data-root` or
+`DATA_DIR`). Each folder has a `MANIFEST.json` with SHA-256 checksums that the loaders verify.
 
-| Dataset | Use | Local path (repo-relative) | Status |
+| Dataset | Use | Local path | Provenance and processing |
 |---|---|---|---|
-| Iris, classes 0/1 (rows 0:100, L2 row-normalised) | Fig. 3b / Table 1 training, Fisher-Rao norm | `data/power_of_QNN/iris/` | Original (scikit-learn 1.9.1 bundled `iris.csv`, same `load_iris` path as the authors) |
-| make_blobs (1000 x 6, 2 centres, `random_state=42`, 60/40 split `random_state=0`) | Fig. 6 generalisation | `data/power_of_QNN/make_blobs/` | Original generator, regenerated with scikit-learn 1.9.1; bit-identity with the authors' version cannot be checked |
-| N(0, I) inputs, uniform parameter samples | Fisher / effective dimension | generated per run (seeded) | n/a |
-| Authors' figure arrays (`.npy`) | Numeric reference targets | `data/power_of_QNN/sources/effective_dimension/` (tag v1.0.0) | Original |
+| Iris, classes 0/1 (rows 0:100, L2 row-normalized) | Fig. 3b / Table 1; Phase 05 K1 | `iris/iris_classes01_l2norm.npz` | scikit-learn 1.9.1 bundled `iris.csv`, the same `load_iris` path as the authors |
+| Iris pairs 0/1 and 1/2, split 30/10/10 per class | Phase 05 X1, X2 | `iris/iris.csv` (split on the fly) | stratified per-class permutation, `RandomState(0)`; L2 per row |
+| make_blobs (1000 x 6, 2 centres, `random_state=42`, 60/40 split `random_state=0`) | Fig. 6 | `make_blobs/` | original generator, regenerated with scikit-learn 1.9.1 |
+| Breast Cancer Wisconsin (569 x 30) | Phase 05 X3 | `breast_cancer/bcancer_pca4_split_rs0.npz` | sklearn bundled copy. Stratified 60/20/20 per class, `RandomState(0)` -> 341 / 113 / 115. Standardize -> PCA 4 (80% of variance) -> min-max [0,1], all fit on train |
+| MNIST digits 3 vs 5 | Phase 05 X4 | `mnist/mnist35_pca4_train500_val500_test_rs0.npz` | OpenML `mnist_784` v1 (cached in `sources/openml/`, 16 MB). Train 500 + validation 500 drawn from the 60k training part, test = all 1,902 threes and fives of the 10k test part. Pixels/255 -> PCA 4 (34% of variance) -> min-max [0,1], fit on train |
+| N(0, I) inputs, uniform parameter samples | Fisher / effective dimension | generated per run (seeded) | — |
+| Authors' figure arrays (`.npy`) | numeric reference targets | `sources/effective_dimension/` (tag v1.0.0) | original |
 
-Each data folder has a `MANIFEST.json` with SHA-256 checksums, shapes and class counts.
-The exact regeneration command is in `LOG.md` (Data Acquisition Log). Licenses: Iris CC BY 4.0
-(UCI), scikit-learn BSD-3-Clause, upstream code Apache-2.0.
+Regeneration:
+- Iris and blobs: the exact command is in `LOG.md` (Data Acquisition Log).
+- Breast cancer and MNIST: `python papers/power_of_QNN/utils/prepare_datasets.py --data-root data`
+  from the repository root.
+
+Licenses: Iris and breast cancer CC BY 4.0 (UCI); MNIST CC BY-SA 3.0; scikit-learn
+BSD-3-Clause; upstream code Apache-2.0.
 
 ## Results Obtained and Comparison with the Paper
 
 Phase 03 (2026-10-21).
 - **Scope:** all results are **paper-accurate**: the authors' settings and full data, with
-  multiple draws or seeds (more than the paper's single draw for the Fisher experiments).
-- **Hardware:** runs were on NVIDIA L4 GPUs (float64). GPU and CPU agree to 5e-14.
-- **Provenance:** every number below comes from `results/phase03_tables.md`, generated by
-  `python utils/summarize_results.py --runs results/phase03_runs.json --output results/phase03_tables.md`.
-  `results/phase03_runs.json` lists the run directory of each experiment.
-- **Paper values:** taken from the paper's Table 1 and from the authors' published source data
-  (git tag v1.0.0).
+  multiple draws or seeds.
+- **Hardware:** NVIDIA L4 GPUs, float64. GPU and CPU agree to 5e-14.
+- **Provenance:** every number comes from `results/phase03_tables.md`, generated from
+  `results/phase03_runs.json`.
+- **Paper values:** the paper's Table 1 and the authors' published source data (tag v1.0.0).
+
+| Paper item | Claim tested | Paper value | Reproduced value | Delta | Metric agreement | Trend agreement | Claim support | Seeds | Comment |
+|---|---|---:|---:|---:|---|---|---|---:|---|
+| Fig. 3a, QNN, ed/d at n=1e3 / 1e6 | C-01 | 0.8211 / 0.9211 | 0.8203 ± 0.0025 / 0.9201 ± 0.0014 | −0.0008 / −0.0010 | quantitative | yes | supported | 5 draws | paper: 1 draw |
+| Fig. 3a, easy model | C-01 | 0.6744 / 0.8146 | 0.6708 ± 0.0039 / 0.8130 ± 0.0033 | −0.0036 / −0.0016 | quantitative | yes | supported | 5 draws | |
+| Fig. 3a, classical [4,4,4,2] | C-01 | 0.5143 / 0.6106 | 0.5361 ± 0.0166 / 0.5123 ± 0.0090 | +0.022 / −0.098 | **not reproduced** | ordering yes | supported (ordering) | 5 draws | the published curve is the d=28 [4,4,2,2], reproduced within 0.003 (I-01) |
+| Fig. 2, F_hat spectra | C-02 | classical degenerate, QNN uniform | F_hat equal to the authors' arrays to ~1e-14 (quantum); classical 43% of eigenvalues < 1e-10 | N/A | quantitative (quantum), distributional (classical) | yes | supported | 5 draws | |
+| Fig. 9, spectra at s_in = 6/8/10 | C-03 | QNN spectrum stays uniform | quantum F_hat equal to the authors' arrays (<= 3e-14); unnormalized tr F / d x0.49 per qubit | N/A | quantitative | normalized yes | partially supported | 3 draws | the paper shows normalized spectra only (I-02) |
+| Fig. 3b / Table 1, QNN final loss | C-04 | 0.2314 | 0.2316 ± 0.0079 | +0.0002 | quantitative | yes | unsupported under fair tuning | 100 seeds | see Fair Baselines |
+| Table 1, easy model final loss | C-04 | 0.4305 | 0.4322 ± 0.0317 | +0.0017 | quantitative | yes | — | 100 seeds | |
+| Table 1, classical [4,1,1,1,2] final loss | C-04 | 0.3790 | 0.3891 ± 0.1250 | +0.0101 | quantitative (within std) | yes | — | 100 seeds | |
+| Table 1, Fisher-Rao norm QNN / easy / classical | C-05 | 117.84 / 104.89 / 46.45 | 115.6 / 109.9 / 63.3 | −2.2 / +5.0 / +16.9 | within seed std (113-157) | yes | unsupported (reverses at init U[-1,1]: 9.7 / 6.9 / 259.9) | 100 seeds | I-03 |
+| Fig. 6, ed/d at 0% / 40% random labels | C-07 | 0.0838 / 0.2067 (authors' cache) | 0.0832 ± 0.0068 / 0.2130 ± 0.0151 | −0.0006 / +0.0063 | quantitative | yes | supported | 10 runs | intermediate levels in the table below |
+| Fig. 8, sample-size sensitivity | C-11 | 100 samples suffice for d <= 100 | stable by ~40 samples for d <= 40; still rising at 100 for d=60-100 | N/A | trend | partly | partially supported | 10 draws | the authors' arrays show the same |
+| Remark 3.3, ed/d at n=1e13 | C-08 | -> rank / d | 0.970 / 0.928 / 0.603 (QNN / easy / classical) | N/A | — | yes | supported | 5 draws | |
 
 ### Effective dimension (Fig. 3a; d=40, s_in=4; 5 draws of 100 theta x 100 inputs)
-
-| Model | ours, n=1e3 | paper, n=1e3 | ours, n=1e6 | paper, n=1e6 | Agreement |
-|---|---|---|---|---|---|
-| QNN (ZZFeatureMap reps 2 + RealAmplitudes reps 9) | 0.8203 ± 0.0025 | 0.8211 | 0.9201 ± 0.0014 | 0.9211 | quantitatively reproduced |
-| Easy model (ZFeatureMap reps 1 + RealAmplitudes reps 9) | 0.6708 ± 0.0039 | 0.6744 | 0.8130 ± 0.0033 | 0.8146 | quantitatively reproduced |
-| Classical [4,4,4,2] (stated model) | 0.5361 ± 0.0166 | 0.5143 | 0.5123 ± 0.0090 | 0.6106 | **not reproduced**: the published curve is the d=28 network [4,4,2,2] (we reproduce it within 0.003) |
 
 ![Fig. 3a](results/fig3a_effective_dimension_d40.png)
 
 **Ordering:** QNN > easy > classical holds at every n. It also holds:
-- with parameters drawn from the paper's [-1,1] instead of the code's [0,1]
-  (`results/fig3a_effective_dimension_d40_paper_domain.png`); the classical network rises to
-  0.57 -> 0.67;
-- against every bias-free classical topology with d=40 and at most 3 hidden layers. The best
-  is [4,6,2,2] at 0.55 (n=1e5), or 0.71 with ReLU and the [-1,1] domain.
+- with parameters drawn from [-1,1] (`results/fig3a_effective_dimension_d40_paper_domain.png`);
+- against every bias-free classical topology with d=40 and at most 3 hidden layers. The
+  complete candidate table is in `results/phase03_tables.md` (B-1, 14 candidates x 3 draws,
+  complete search). The best is [4,6,2,2], selected by mean rank 31.0 vs 26.1 for the
+  runner-up (no tie), with ed/d 0.55 at n=1e5, or 0.71 with ReLU and the [-1,1] domain.
 
-Footnote 18's choice of [4,4,4,2] as the highest-rank classical network is not reproduced:
-[4,6,2,2] has mean rank 31.0 vs 22.6.
+Footnote 18's choice of [4,4,4,2] as the highest-rank classical network is therefore not reproduced.
 
 ### Fisher spectra (Figs. 2 and 9)
 
 - **Normalized spectra:** the classical F_hat is degenerate (43% of eigenvalues < 1e-10). The
   QNN spectrum is the most uniform: its max eigenvalue stays ~4.5-5.8 from 4 to 10 qubits,
   while the easy model's outliers grow to ~54.
-- **Match with the authors' arrays:** at 6, 8 and 10 qubits our quantum F_hat equal the
-  authors' cached Fig. 9 arrays element-wise (<= 3e-14).
-  (`results/fig2_spectra_d40.png`, `results/fig9_spectra_s{6,8,10}.png`)
-- **Not visible in the paper's normalized plots:** the per-parameter unnormalized Fisher trace,
-  which Sec. 3.4 ties to barren plateaus, shrinks by about half per qubit for the QNN (x0.49)
-  as well as for the easy model (x0.53). The claimed barren-plateau resilience of the QNN is
-  therefore **not supported**. See `results/fisher_trace_scaling.png` and `INSIGHTS.md` I-02.
+- **Per-parameter unnormalized Fisher trace:** Sec. 3.4 ties this quantity to barren plateaus.
+  It shrinks by about half per qubit for the QNN (x0.49) and the easy model (x0.53). The
+  claimed barren-plateau resilience is therefore not supported.
 
 ![Fisher trace scaling](results/fisher_trace_scaling.png)
 
 ### Training on Iris (Fig. 3b, Table 1; d=8, 100 seeds, Adam lr 0.1, 100 iterations)
 
-| Model | final loss, ours | final loss, paper | Fisher-Rao norm, ours | Fisher-Rao norm, paper |
-|---|---|---|---|---|
-| QNN | 0.2316 ± 0.0079 | 0.2314 | 115.6 ± 113.4 | 117.84 |
-| Easy model | 0.4322 ± 0.0317 | 0.4305 | 109.9 ± 136.5 | 104.89 |
-| Classical [4,1,1,1,2] | 0.3891 ± 0.1250 | 0.379 | 63.3 ± 156.6 | 46.45 |
-
 ![Fig. 3b](results/fig3b_training_iris.png)
 
-- **Final losses:** quantitatively reproduced. Exact gradients and the authors' finite
-  differences differ by <= 3e-4.
+- **Gradients:** exact gradients and the authors' finite differences differ by <= 3e-4.
 - **Init range:** with every model initialized in [-1,1], the QNN still has the lowest loss
-  (0.2307 ± 0.0062) and the classical network improves to 0.3029 ± 0.1650.
-- **Fisher-Rao norm:** its ordering **reverses** under that init range (QNN 9.7, classical
-  259.9). The paper's "~250% higher" therefore reflects the larger quantum init range, not
-  capacity (`INSIGHTS.md` I-03).
-- **Pending:** a learning-rate-tuned comparison that includes the linear d=8 model [4,2] is
-  scheduled for Phase 05.
+  under the paper's shared lr (0.2307 ± 0.0062 vs classical 0.3029 ± 0.1650). This changes once
+  each model's lr is tuned (Fair Baselines).
 
 ### Generalization (Fig. 6; [6,110,2], d=880, 10 runs per level)
 
@@ -208,131 +279,174 @@ Footnote 18's choice of [4,4,4,2] as the highest-rank classical network is not r
 
 ![Fig. 6](results/fig6_generalisation.png)
 
-These are quantitatively reproduced. Note that "x% randomized" overwrites x% of the labels
-with random ones, so only about x/2% actually change.
+"x% randomized" overwrites x% of the labels with random ones, so only about x/2% change.
 
-### Sample-size sensitivity (Fig. 8)
+## Fair Baselines
 
-The estimate stabilizes by about 40 samples for d <= 40. For the d=60-100 classical networks of
-Fig. 9 it is still rising at 100 samples, in our data and in the authors' (`results/fig8_sensitivity.png`).
+**Question:** does the paper's training advantage survive a fair comparison? And do the
+photonic designs learn as well as their capacity suggests?
 
-### Claim verdicts (Phase 03)
+**Baseline state:**
+- C-01/C-02: `FAIR_AND_REPRODUCED` (B-1 topology search, Phase 03).
+- C-04: `MISSING_OR_UNFAIR`, because the paper's [4,1,1,1,2] is a width-1 chain, one untuned lr
+  (0.1) is shared, and the init ranges differ. The fix is the B-2 baselines below.
 
-| Claim | Verdict |
-|---|---|
-| QNN has a higher effective dimension than comparable classical and easy models (Fig. 3a) | supported; the published classical curve uses a d=28 network |
-| QNN Fisher spectrum is the most uniform; classical is degenerate (Fig. 2) | supported |
-| QNN resists barren plateaus as qubits grow (Fig. 9, Sec. 4.3) | partially supported: normalized shape yes; unnormalized Fisher scale vanishes exponentially |
-| QNN trains to a lower loss (Fig. 3b, Table 1) | supported against the paper's baselines; tuned baselines pending (Phase 05) |
-| QNN has a ~250% higher Fisher-Rao norm (Table 1) | unsupported as a capacity statement (init-range artifact) |
-| Effective dimension tracks generalization (Fig. 6) | supported |
-| 100 samples suffice for d <= 100 (Fig. 8) | partially supported (d <= 40 only) |
-| Generalization bound (Thms 3.2, B.5) | not tested (theory) |
-| QNN trains better on IBM hardware | not tested (no QPU) |
+**Protocol (frozen in `LOG.md` "Phase 5 Comparison Plan" before any run).** Every model gets:
+- the same Adam optimizer (torch defaults), init U[-1,1], 100 full-batch iterations;
+- its own lr from {0.01, 0.03, 0.1, 0.3}, selected on seeds 0-19 by the lowest mean final loss
+  (training loss for K1, validation loss otherwise; ties within 0.005 reported);
+- final numbers on fresh seeds 100-199.
 
-## Photonic Adaptation (MerLin, Phase 04)
+A difference counts only if it exceeds both 0.005 and 3 standard errors.
 
-**Photonic translation status: `MERLIN_IMPLEMENTATION`.** This is an *adaptation*, not part
-of the reproduction.
+| Run | Task | d | Selection split | Metric | Label |
+|---|---|---|---|---|---|
+| K1 | Iris 0/1, all 100 points (the paper's setting) | 8 | train | final training CE | core (C-04) |
+| X1 / X2 | Iris 0/1 / Iris 1/2, 30/10/10 per class | 40 | validation | test CE | extension, advantage evidence |
+| X3 / X4 | breast cancer / MNIST 3 vs 5, 4 PCA features | 40 | validation | test CE (+ accuracy) | extension, advantage evidence |
 
-**Model.** Following the user's direction, there is no 1-to-1 qubit/gate mapping: dual-rail
-CNOTs would cost extra modes and photons. Instead, `lib/photonic_merlin.py` is a native
-linear-optical classifier on m = s_in + 2 modes with m/2 photons:
-- **Easy encoding:** a fixed balanced mixer, then phases 2x_i.
-- **Hard encoding:** the paper's ZZFeatureMap data map, i.e. 2x_i and 2(pi-x_i)(pi-x_(i+1))
-  phases between fixed mixers, repeated twice (data re-uploading).
-- **Trainable part:** an MZI mesh truncated to exactly d phases.
+Final cross-entropy, mean ± std over 100 fresh seeds; wall-clock in seconds for the lr grid
+plus the final seeds, on a laptop CPU:
+
+| Model | K1 train CE | X1 test CE | X2 test CE | X3 test CE (acc) | X4 test CE (acc) |
+|---|---|---|---|---|---|
+| Qubit QNN, ZZ x2 (paper) | 0.2297 ± 0.0024 | 0.0489 ± 0.0016 | 0.3027 ± 0.0020 | 0.418 ± 0.007 (0.878) | 0.574 ± 0.005 (0.719) |
+| Qubit QNN, ZZ x3 | 0.2316 ± 0.0253 | 0.0558 ± 0.0024 | 0.2567 ± 0.0027 | 0.454 ± 0.008 (0.863) | 0.603 ± 0.004 (0.700) |
+| Easy QNN | 0.4250 ± 0.0269 | — | — | — | — |
+| Photonic B2 (6 modes / 3 photons) | — | 0.0924 ± 0.0436 | 0.2360 ± 0.0397 | 0.380 ± 0.028 (0.906) | 0.533 ± 0.021 (0.824) |
+| Photonic A8 (10 modes / 5 photons) | 0.6375 ± 0.0085 (d=8) | 0.4424 ± 0.0616 | 0.4562 ± 0.0623 | — | — |
+| Classical [4,1,1,1,2] (paper, d=8) | 0.1416 ± 0.2308 | — | — | — | — |
+| Classical [4,6,2,2] (B-1 selection) | — | 0.0083 ± 0.0560 | **0.2168 ± 0.1884** | 0.178 ± 0.035 (0.931) | 0.272 ± 0.082 (0.879) |
+| Linear [4,2] (d=8; unmatched reference at d=40) | **0.0089 ± 0.0019** | 0.0087 ± 0.0020 | 0.2482 ± 0.0345 | **0.164 ± 0.006** (0.930) | **0.240 ± 0.002** (0.879) |
+
+Wall-clock (s), X1 / X2 / X3 / X4:
+- qubit QNNs: 23-26 / 24-26 / 96-105 / 127-138;
+- B2: 38 / 37 / 234 / 369;
+- A8: 826 / 831 (K1: 1569);
+- classical: <= 1 everywhere.
+
+![Phase 05 fair comparison](results/phase05_fair_comparison.png)
+
+- **C-04 is unsupported under fair tuning.** At d=8 on the paper's own task, both classical nets
+  reach a lower training loss than the QNN (linear 0.009 vs QNN 0.230, resolved). The QNN value
+  matches Table 1. The paper's ordering comes from the shared lr 0.1 and the all-positive
+  classical init.
+- **No learning advantage for any quantum model over classical baselines.** The classical models
+  are better on X1, X3 and X4. On X2 the best quantum models (B2, qubit ZZ x3) tie them.
+- **Among quantum models, B2 is the strongest learner.** It beats both qubit QNNs on X2, X3 and X4
+  (MNIST accuracy 0.824 vs 0.719) and loses to them only on the easy Iris 0/1.
+- **Capacity does not predict learning here.** A8 has the highest effective dimension and the
+  worst held-out loss; the linear model has the lowest capacity and the best loss.
+- **Learning-rate sweeps:** every model's full grid is in `results/phase05_tables.md`
+  (5 runs x 4-6 models x 4 lr x 20 seeds; every sweep complete, coverage checked by the script).
+  lr 0.3, the grid maximum, was selected or tied for most models. The grid was not extended
+  after seeing results.
+
+Every pairwise decision is in `results/phase05_tables.md` and `results/phase04_amendment5_tables.md`.
+
+## Photonic Assessment and MerLin Extension
+
+**Photonic translation status: `MERLIN_IMPLEMENTATION`.** Everything in this section is an
+*adaptation* of the paper, not part of the reproduction. All results are exact simulations
+with ideal, lossless photons.
+
+**Mapping.** There is no 1-to-1 qubit/gate mapping: dual-rail CNOTs would cost extra modes
+and photons (user direction). Instead, `lib/photonic_merlin.py` is a native linear-optical
+classifier:
+- **Inputs:** m modes and m/2 photons, with a Fock input [1,0,1,0,...] or an entangled
+  linear-cluster input from one spin emitter.
+- **Hard encoding:** the paper's data map, i.e. phases 2x_i and 2(pi-x_i)(pi-x_(i+1)) between
+  fixed mixers. The **easy encoding** applies phases 2x_i only.
+- **Trainable part:** an MZI mesh truncated to exactly d phases, either after the encoding or
+  interleaved with re-uploads of the data.
 - **Readout:** parity of threshold clicks on the odd modes.
 
-It is simulated in MerLin's FOCK space with ideal threshold detection and no postselection,
-and exercised through the same Fisher, effective-dimension and training pipelines as Phase 03.
-Hardware-aware details for every run are in `LOG.md` ("Phase 04 Results").
+**Results, in the order they were found:**
 
-| Quantity (d=40, s_in=4, theta ~ U[0,1], 5 draws) | n=1e3 | n=1e6 | mean rank |
-|---|---|---|---|
-| photonic hard (6 modes / 3 photons) | 0.4532 ± 0.0045 | 0.4861 ± 0.0058 | 24.0 / 40 |
-| photonic easy (6 modes / 3 photons) | 0.4194 ± 0.0057 | 0.4697 ± 0.0042 | 24.0 / 40 |
-| photonic hard (8 modes / 4 photons, diagnostic amendment) | 0.4964 ± 0.0061 | 0.5786 ± 0.0120 | 33.6 / 40 |
-| qubit QNN (Phase 03) | 0.8203 ± 0.0025 | 0.9201 ± 0.0014 | 40 / 40 |
-| classical [4,4,4,2] (Phase 03) | 0.5361 ± 0.0166 | 0.5123 ± 0.0090 | 22.7 / 40 |
+| Step | Design (d=40) | ED n=1e5 | Learning (test CE) | Source |
+|---|---|---|---|---|
+| Planned | P0: 6 modes / 3 photons, encode then mesh | 0.467 | Iris 0/1 at d=8: 0.377 vs classical 0.389 (tie) | Phase 04 |
+| Amendment 2 | P4: interleaved re-uploading, 8 modes / 4 photons | 0.818 ± 0.009 | worse at d=8 (0.588) | `phase04_design_screens.md` |
+| Amendment 3 | T2a: P4 + cluster input; QLOQ[4]: the paper's QNN as 1 photon in 16 modes | 0.877; 0.896 (identical F_hat) | — | same |
+| Amendment 4 | **A8**: 10 modes / 5 photons, cluster input, 3 re-uploads | **0.9096 ± 0.0018** (beats qubit ZZ x3 0.8926, >3 std at n=1e3-1e6) | worst of all models (0.44-0.46) | same; Phase 05 |
+| Amendment 5 | **B2**: 6 modes / 3 photons, cluster input, 3 re-uploads | 0.8970 ± 0.0007 (>= qubit up to n=1e5, tie at 1e6) | best quantum model on X2-X4 | `phase04_amendment5_tables.md`; Phase 05 |
 
-![MerLin effective dimension](results/merlin_effective_dimension_d40.png)
+**What carries over from the paper:**
+- **Encoding effect:** the hard encoding gives a higher effective dimension and a lower Iris loss
+  than the easy one at s_in = 4 (`results/phase04_tables.md`). It is not resolved at s_in = 8, 10.
+- **Fisher scale:** it vanishes exponentially with size, as for the qubit models (x0.47 per added
+  input vs x0.49).
 
-**What carries over to photonics:**
-- **Encoding effect:** the hard (higher-order, re-uploaded) encoding has a higher effective
-  dimension than the easy one at s_in = 4 (n <= 1e5) and s_in = 6. It also trains to a lower
-  Iris loss: 0.377 ± 0.055 vs 0.546 ± 0.046 (100 seeds).
-- **Not robust at larger sizes:** the encoding effect is not resolved at s_in = 8 or 10.
-- **Fisher scale:** it vanishes exponentially with size, as for the qubit models: x0.47 per
-  added input vs x0.49 for the qubit QNN (`results/merlin_fisher_trace_scaling.png`).
-
-**What does not carry over (planned 6-mode design; see the design study below for improved designs):**
-- **Capacity advantage over classical networks:** on the 6-mode chip the photonic models stay
-  below classical [4,4,4,2], because d=40 exceeds what 6 modes can use (rank ~24). With 8 modes
-  the hard model passes [4,4,4,2] but only ties the best classical topology.
-- **Trainability advantage over classical networks:** photonic hard 0.377 vs classical 0.389,
-  difference not resolved (`results/merlin_training_iris.png`).
-
-**Design study (user-requested, 2026-10-24; exploratory screening plus confirmation on fresh
-draws).** See `results/merlin_design_study.png` and LOG.md, Amendments 2 and 3.
-
-| Photonic design (d=40) | ed/d at n=1e5 | vs qubit QNN (0.897) |
-|---|---|---|
-| planned (6 modes / 3 photons) | 0.467 | far below |
-| interleaved re-uploading, 8 modes / 4 photons (P4, confirmed) | 0.818 ± 0.009 | −0.08 |
-| P4 + **linear-cluster input from a spin emitter** (T2a, confirmed) | **0.877 ± 0.002** | −0.02 (tie at n=1e3) |
-| feed-forward (mid-circuit PNR + conditional meshes, 6 modes) | 0.767 | −0.13 |
-| **QLOQ [4]**: the paper's exact QNN as 1 photon in 16 modes (arXiv:2411.03878) | 0.896 (identical F_hat) | 0 |
-
-![MerLin design study](results/merlin_design_study.png)
-
-**Beating the qubit QNN (Amendment 4, user request; exploratory search, confirmed on fresh draws
-10-14).**
-- **Design (A8):** 10 modes, 5 photons, a **linear-cluster input from a spin emitter**,
-  **3 interleaved re-uploads** of the paper's data map, and a 40-phase live MZI mesh.
-- **Result:** normalized effective dimension 0.8455 / 0.9096 / 0.9295 (n = 1e3 / 1e5 / 1e6).
-  The qubit QNN with the same data-map depth (ZZ ×3) reaches 0.8137 / 0.8926 / 0.9165 on the
-  same draws.
-- **Margin:** +0.013 to +0.032, above 3 std at every n. A8 also beats the paper's ZZ ×2 QNN.
-- **Not robust everywhere:** with parameters in [0, 2π], the best photonic design only ties
-  the qubit model.
-- **Caveats:** this is a capacity metric, not accuracy (A8 was not trained); the photons are
-  ideal and the results simulated; the photonic Fock space is larger (2002 states, against 16
-  qubit amplitudes).
-
-- **What lifts the photonic score:** data re-uploading interleaved with trainable meshes (the
-  largest gain), more modes, an entangled emitter input, and fixing dead phases in the mesh.
-- **What does not help:** feed-forward and PNR readout.
-- **Best multi-photon design:** essentially matches the qubit QNN, and beats every classical
-  network searched by +0.28 to +0.39.
-- **QLOQ shows** that the paper's 4-qubit QNN *is* a single-photon interferometer. Its capacity
-  therefore needs no multi-photon quantum effect.
-- **Trainability does not follow:** the capacity-optimized 8-mode layout trains worse at d=8
-  (Iris loss 0.588, vs 0.377 for the planned design and 0.389 for classical).
+**What the design searches showed.** Every candidate of every search is listed in
+`results/phase04_design_screens.md`, with the predeclared rules in `LOG.md`, Amendments 2-5.
+- **Capacity levers:** data re-uploading interleaved with trainable meshes gave the largest gain.
+  More modes and an emitter cluster input also help, and fixing dead mesh phases matters.
+  Feed-forward and PNR readout do not help.
+- **Capacity versus confidence:** A8 cannot output confident probabilities. For a single input,
+  its best p(correct class) is about 0.8; the same chip with a Fock input reaches 0.999. Each added
+  mode or switch to a cluster input buys capacity and costs loss (Amendment 5 Pareto set: B1, B2,
+  B4, B6).
+- **B2 trade-off:** it was selected by a predeclared rule (qubit-level capacity, lowest validation
+  loss on Iris 1/2). It was then confirmed on fresh draws, on fresh seeds, and on two tasks it was
+  never selected on (X3, X4).
+- **QLOQ:** the paper's 4-qubit QNN *is* a single-photon interferometer, so its capacity needs no
+  multi-photon quantum effect.
 
 **Ablations:**
-- MerLin's `UNBUNCHED` space postselects collision-free outcomes, keeping only 37-43% of
-  events, and renormalizes. It raises the effective dimension slightly.
-- Sampling theta in [0, 2pi] raises the effective dimension but not the rank.
+- MerLin's `UNBUNCHED` space keeps only the 37-43% of events that are collision-free, then
+  renormalizes. It raises the effective dimension slightly.
+- theta ~ U[0, 2pi] raises the effective dimension but not the rank. At that domain the best
+  photonic design only ties the qubit QNN.
 
-Full tables: `results/phase04_tables.md`.
+**Confidence: MEDIUM.**
+- The design space was chosen by hand.
+- Results depend on chip size, readout and input state.
+- Everything is simulated with ideal photons and an ideal emitter.
 
-**Confidence: MEDIUM.** The conclusions depend on chip size, readout and mixer layout. All
-results are simulated (ideal lossless photons); there was no QPU run.
+## Hardware-Aware Settings
+
+All MerLin results are exact simulations (shots = 0, float64) with:
+- threshold detection: ideal clicks, bunched events kept;
+- no postselection, except the `UNBUNCHED` ablation. The emitter's X-basis outcome is assumed
+  correctable by a fixed phase.
+
+| Design | Computation space | Detector | Photons | Modes (Fock dim.) | Input state | Encoding | Measurement | Postselection | Simulator | Wall-clock | Seeds / draws |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Phase 04 planned hard/easy (P0) | FOCK | ideal threshold | 3 | 6 (56) | [1,0,1,0,1,0] | hard (2 reps) / easy, then mesh | parity of clicks, odd modes | none | MerLin, L4 GPU | ~80 s per Fisher run | draws 0-4; seeds 0-99 |
+| UNBUNCHED ablation | UNBUNCHED | collision-free postselection, renormalized | 3 | 6 | same | same | same | success 0.374 (hard) / 0.433 (easy) | same | 79 s | draws 0-4 |
+| Scaling (s_in = 6, 8, 10) | FOCK | ideal threshold | 4 / 5 / 6 | 8 / 10 / 12 (up to 12,376) | [1,0,...] | hard / easy, d = 60-100 | same | none | same | 8.5 min | draws 0-2 |
+| A8 | FOCK | ideal threshold | 5 | 10 (2,002) | linear cluster from one spin emitter | hard, 3 re-uploads interleaved with a 20-MZI ps_bs mesh | same | none | MerLin, local CPU, photonic_engines fork | 61 s (Fisher); 826-1569 s (Phase 05 runs) | draws 10-14; seeds 0-19, 100-199 |
+| B2 | FOCK | ideal threshold | 3 | 6 (56) | linear cluster from one spin emitter | as A8 | same | none | same | 37-369 s (Phase 05 runs) | draws 10-14; seeds 0-19, 100-199 |
+
+Per-run hardware tables for every MerLin run, including all design-search candidates, are in
+`LOG.md` ("Hardware-aware table", Amendment 4 and 5 tables).
 
 ## Limitations
 
-- The IBM hardware run is not reproduced (no QPU access).
-- Classical Fisher arrays can only be compared with the authors' in distribution, not
+- **No hardware:** the IBM hardware run is not reproduced (no QPU access), and no photonic QPU
+  run was made.
+- **Classical Fisher arrays:** they can only be compared with the authors' in distribution, not
   element-wise.
-- make_blobs was regenerated with scikit-learn 1.9.1, so bit-identity with the authors' 2020
+- **make_blobs:** regenerated with scikit-learn 1.9.1, so bit-identity with the authors' 2020
   data cannot be checked.
-- Fig. 9 classical effective dimensions (d=60-100) are underestimated: the 100-sample Monte
+- **Fig. 9:** classical effective dimensions (d=60-100) are underestimated; the 100-sample Monte
   Carlo estimate has not converged.
-- App. A's [-1,1] feature scaling for the Fisher inputs was not ablated. The authors' arrays,
-  which we match, use N(0,1).
-- The photonic adaptation (Phase 04) is simulated with ideal photons and one readout and chip
-  design. The learning-rate-tuned fair baselines are pending (Phase 05).
+- **App. A feature scaling:** its [-1,1] feature scaling for the Fisher inputs was not ablated.
+  The authors' arrays, which we match, use N(0,1).
+- **Phase 05 protocol limits:**
+  - one fixed split per task, so split variance is not captured;
+  - 20-point Iris test sets;
+  - 100 iterations for all models;
+  - lr 0.3 at the grid edge for most models.
+
+  B2's training loss was still falling slowly at iteration 100 (about 0.002 per 10 iterations).
+- **Input reduction:** the X3/X4 tasks are reduced to 4 PCA features to fit the 4-input
+  models. MNIST 3 vs 5 keeps 34% of its variance.
+- **Not run:** the ablations proposed to explain the quantum-classical gap (trainable output
+  scaling, trainable input weights, longer training). The explanations in `INSIGHTS.md` I-07
+  are hypotheses.
+- **Photonic adaptation:** ideal lossless photons, an ideal emitter, and one readout family.
+  The design space was chosen by hand.
 
 ## Tests
 
@@ -341,7 +455,7 @@ cd papers/power_of_QNN
 pytest -q
 ```
 
-The 47 tests cover:
+The 55 tests cover:
 - circuit conventions (CX action, Qiskit entanglement order);
 - autograd vs parameter shift;
 - the Fisher as an explicit per-sample sum;
@@ -351,14 +465,16 @@ The 47 tests cover:
 - Adam equivalence with `torch.optim.Adam`;
 - finite differences vs autograd;
 - independence of per-seed training;
-- CLI wiring;
-- end-to-end smoke runs;
-- the MerLin photonic models (Phase 04): an independent Perceval SLOS check of the photonic
-  classifier, UNBUNCHED = renormalized collision-free FOCK, gradient flow and per-row
-  independence, dead vs live mesh phases, the interleaved split, PNR vs click parity, emitter
-  inputs (gradients and an explicit GHZ state), QLOQ [n] equal to the qubit QNN, and the
-  feed-forward Fisher against finite differences. The emitter tests are skipped when MerLin
-  lacks `EmitterState` (the PyPI build).
+- CLI wiring and end-to-end smoke runs;
+- the MerLin models: an independent Perceval SLOS check, UNBUNCHED = renormalized
+  collision-free FOCK, gradient flow, dead vs live mesh phases, the interleaved split, PNR vs
+  click parity, emitter inputs (gradients and an explicit GHZ state), QLOQ [n] equal to the
+  qubit QNN, and the feed-forward Fisher against finite differences;
+- the Phase 05 pipeline: a stratified, disjoint and deterministic Iris split; checksum-verified
+  prepared splits with train-only scaling and reduction; the lr selection and tie rule; and a
+  smoke comparison run.
+
+The emitter tests are skipped when MerLin lacks `EmitterState` (the PyPI build).
 
 ## Citation and License
 
@@ -373,3 +489,6 @@ The 47 tests cover:
   doi     = {10.1038/s43588-021-00084-1}
 }
 ```
+
+This reproduction's code follows the repository license. The upstream reference arrays are
+Apache-2.0 (amyami187/effective_dimension).

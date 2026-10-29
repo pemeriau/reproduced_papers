@@ -93,3 +93,45 @@ def test_fair_comparison_smoke_run(tmp_path):
         assert arrays["test_loss"].shape == (2,)
         assert arrays["grid_losses"].shape == (2, 2)
         assert np.isclose(arrays["train_loss"].mean(), entry["loss_curve_mean"][-1])
+
+
+@pytest.mark.parametrize(
+    ("subdir", "file", "sizes"),
+    [
+        ("breast_cancer", "bcancer_pca4_split_rs0.npz", (341, 113, 115)),
+        ("mnist", "mnist35_pca4_train500_val500_test_rs0.npz", (500, 500, 1902)),
+    ],
+)
+def test_prepared_split_loads_checked_four_feature_task(subdir, file, sizes):
+    cfg = {
+        "data_root": str(DATA_ROOT),
+        "dataset": {"name": "prepared_split", "subdir": subdir, "file": file},
+    }
+    for split, size in zip(("train", "validation", "test"), sizes):
+        x, y = load_arrays(cfg, split)
+        assert x.shape == (size, 4)
+        assert set(np.unique(y)) == {0, 1}
+    x_train, _ = load_arrays(cfg, "train")
+    # The [0, 1] scaling is fit on the training split only.
+    assert np.allclose(x_train.min(axis=0), 0.0) and np.allclose(
+        x_train.max(axis=0), 1.0
+    )
+
+
+def test_reduction_is_fit_on_train_only():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "utils"))
+    from prepare_datasets import apply_reduction, fit_reduction
+
+    rng = np.random.RandomState(0)
+    train, other = rng.normal(size=(50, 6)), rng.normal(loc=3.0, size=(20, 6))
+    reduction = fit_reduction(train, standardize=True)
+    assert np.allclose(apply_reduction(train, reduction).min(axis=0), 0.0)
+    shifted = apply_reduction(other, reduction)
+    # Statistics of the other split do not enter the transform.
+    assert not np.allclose(shifted.min(axis=0), 0.0)
+    assert np.allclose(
+        fit_reduction(train, standardize=True)["components"], reduction["components"]
+    )

@@ -8,6 +8,8 @@ Two real datasets sit behind one interface, ``build_dataloader(cfg, split)``:
   L2 row-normalized, 60/40 split (Fig. 6, App. B.2).
 - ``iris_pair``: two Iris classes from ``iris.csv`` with a stratified
   train / validation / test split (Phase 05 fair comparison; not in the paper).
+- ``prepared_split``: a binary task already reduced to 4 inputs and split by
+  ``utils/prepare_datasets.py`` (Phase 05 extensions X3 breast cancer, X4 MNIST 3 vs 5).
 
 The synthetic ``x ~ N(0, I)`` inputs of the Fisher estimates (Sec. 4.1) are not a
 dataset here: ``lib.fisher_experiments.draw_parameters_and_inputs`` draws them from
@@ -37,7 +39,7 @@ PAPER_NAME = "power_of_QNN"
 IRIS_FILE = ("iris", "iris_classes01_l2norm.npz")
 BLOBS_FILE = ("make_blobs", "make_blobs_n1000_f6_c2_rs42_split60_40_rs0.npz")
 IRIS_CSV = ("iris", "iris.csv")
-DATASETS = ("iris_binary", "blobs", "iris_pair")
+DATASETS = ("iris_binary", "blobs", "iris_pair", "prepared_split")
 IRIS_PAIR_SPLITS = ("train", "validation", "test")
 
 
@@ -135,6 +137,13 @@ def load_arrays(cfg: dict, split: str) -> tuple[np.ndarray, np.ndarray]:
         return arrays[f"x_{split}"], arrays[f"y_{split}"].astype(np.int64)
     if name == "iris_pair":
         return _iris_pair(cfg["dataset"], paper_data_dir(cfg), split)
+    if name == "prepared_split":
+        if split not in IRIS_PAIR_SPLITS:
+            raise ValueError(
+                f"prepared_split has splits {IRIS_PAIR_SPLITS}; got {split!r}"
+            )
+        arrays = _verified_npz(cfg, cfg["dataset"]["subdir"], cfg["dataset"]["file"])
+        return arrays[f"x_{split}"], arrays[f"y_{split}"].astype(np.int64)
     raise ValueError(f"Unknown dataset {name!r}; expected one of {DATASETS}")
 
 
@@ -153,6 +162,19 @@ def build_dataloader(cfg: dict, split: str) -> DataLoader:
 def dataset_record(cfg: dict) -> dict:
     """Describe the dataset for ``run_status.json``."""
     name = cfg["dataset"]["name"]
+    if name == "prepared_split":
+        dataset_cfg = cfg["dataset"]
+        manifest = json.loads(
+            (paper_data_dir(cfg) / dataset_cfg["subdir"] / "MANIFEST.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        return {
+            "name": f"prepared_split: {manifest['dataset']} ({dataset_cfg['file']})",
+            "splits": list(IRIS_PAIR_SPLITS),
+            "preprocessing": f"{manifest['reduction']}; split: {manifest['split']}",
+            "subset": None,
+        }
     if name == "iris_pair":
         dataset_cfg = cfg["dataset"]
         return {
