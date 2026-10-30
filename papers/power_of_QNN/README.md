@@ -1,6 +1,6 @@
 # The power of quantum neural networks — Reproduction
 
-Status (2026-10-29): Phases 01-07 complete and audited. Start with `notebook.ipynb`, a runnable
+Status (2026-10-30): Phases 01-08 complete; model and task names made descriptive on 2026-10-30. Start with `notebook.ipynb`, a runnable
 walkthrough of the claims and evidence (under a minute on CPU).
 - **Reproduced:** every paper experiment except the IBM hardware run (Phase 03).
 - **Photonic adaptation:** a native MerLin design was built and searched (Phase 04).
@@ -128,7 +128,8 @@ papers/power_of_QNN/
 |   |-- fair_comparison.py                    Phase 05 lr grid + selection + fresh seeds
 |   |-- photonic_merlin.py, qloq_merlin.py, feedforward_merlin.py   MerLin adaptations
 |   |-- data.py, models.py, plotting.py, reference.py, experiment_logging.py
-|-- tests/              55 tests (pytest)
+|   |-- display_names.py                      readable model and task names for figures and tables
+|-- tests/              66 tests (pytest)
 |-- utils/              table, figure and data-preparation scripts
 |-- results/            curated tables (*.md, *.json) and figures (*.png)
 |-- models/             empty: no trained model is kept
@@ -502,7 +503,7 @@ cd papers/power_of_QNN
 pytest -q
 ```
 
-The 55 tests cover:
+The 66 tests cover:
 - circuit conventions (CX action, Qiskit entanglement order);
 - autograd vs parameter shift;
 - the Fisher as an explicit per-sample sum;
@@ -519,7 +520,9 @@ The 55 tests cover:
   qubit QNN, and the feed-forward Fisher against finite differences;
 - the Phase 05 pipeline: a stratified, disjoint and deterministic Iris split; checksum-verified
   prepared splits with train-only scaling and reduction; the lr selection and tie rule; and a
-  smoke comparison run.
+  smoke comparison run;
+- the readable names: every model in every config resolves to a name that matches its
+  definition (modes, input state, uploads), and unknown names fail clearly.
 
 The emitter tests are skipped when MerLin lacks `EmitterState` (the PyPI build).
 
