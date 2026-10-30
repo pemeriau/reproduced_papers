@@ -3,9 +3,9 @@
 Usage (from papers/power_of_QNN):
     python utils/plot_fair_comparison.py --runs results/phase05_runs.json --scope paper-accurate
 
-One row per run (K1, X1-X4): left, mean training cross-entropy ± std over the fresh
-seeds at each model's selected lr; right, the primary metric (training CE for K1, test
-CE for X1/X2) with error bars of 3 standard errors, the resolution scale of the
+One row per run (Iris 0/1 training loss at d = 8, then the held-out tasks at d = 40): left,
+mean training cross-entropy ± std over the fresh seeds at each model's selected lr; right, the
+primary metric (training CE on the d = 8 task, test CE otherwise) with error bars of 3 standard errors, the resolution scale of the
 predeclared decision rule. Writes results/phase05_fair_comparison.png.
 """
 
@@ -21,14 +21,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 from figure_io import RESULTS_DIR, load_metrics  # noqa: E402
+from power_of_QNN.lib.display_names import model_label  # noqa: E402
 from power_of_QNN.lib.plotting import _stamp  # noqa: E402
 
 TITLES = {
-    "fair_iris01_d8": "K1: Iris 0/1, d = 8, training CE (C-04)",
-    "fair_iris01_d40": "X1: Iris 0/1, d = 40, held-out test CE",
-    "fair_iris12_d40": "X2: Iris 1/2, d = 40, held-out test CE",
-    "fair_bcancer_d40": "X3: breast cancer (4 PCA features), d = 40, test CE",
-    "fair_mnist35_d40": "X4: MNIST 3 vs 5 (4 PCA features), d = 40, test CE",
+    "fair_iris01_d8": "Iris 0/1 (the paper's task), d = 8, training CE (claim C-04)",
+    "fair_iris01_d40": "Iris 0/1, d = 40, held-out test CE",
+    "fair_iris12_d40": "Iris 1/2, d = 40, held-out test CE",
+    "fair_bcancer_d40": "Breast cancer (4 PCA features), d = 40, held-out test CE",
+    "fair_mnist35_d40": "MNIST 3 vs 5 (4 PCA features), d = 40, held-out test CE",
 }
 
 
@@ -90,13 +91,13 @@ def main() -> None:
                 mean,
                 color=color,
                 linestyle=linestyle,
-                label=f"{name} (lr {entry['selected_lr']:g})",
+                label=f"{model_label(name)} (lr {entry['selected_lr']:g})",
             )
             curve_axis.fill_between(
                 steps, mean - std, mean + std, color=color, alpha=0.12
             )
             values = np.load(run_dir / entry["arrays"])[f"{split}_loss"]
-            names.append(name)
+            names.append(model_label(name))
             means.append(values.mean())
             errors.append(3 * values.std() / np.sqrt(len(values)))
             colors.append(color)

@@ -1,5 +1,5 @@
 {
-  "description": "Phase 05 extension X3: breast cancer (4 PCA features, 341/113/115) (advantage evidence): B2 photonic, qubit QNNs Q3/Q2, classical [4,6,2,2] and the d=8 linear reference; X1/X2 protocol.",
+  "description": "Phase 05 held-out comparison on breast cancer (4 PCA features, 341/113/115; advantage evidence): photonic 6-mode (B2), qubit QNN (paper) and with 3 uploads, classical [4,6,2,2] and the d=8 linear reference; fair_iris01_d40 protocol.",
   "experiment": {
     "name": "fair_bcancer_d40",
     "kind": "fair_comparison"

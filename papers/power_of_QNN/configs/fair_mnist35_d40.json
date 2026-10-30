@@ -1,5 +1,5 @@
 {
-  "description": "Phase 05 extension X4: MNIST 3 vs 5 (4 PCA features, 500/500/1902) (advantage evidence): B2 photonic, qubit QNNs Q3/Q2, classical [4,6,2,2] and the d=8 linear reference; X1/X2 protocol.",
+  "description": "Phase 05 held-out comparison on MNIST 3 vs 5 (4 PCA features, 500/500/1902; advantage evidence): photonic 6-mode (B2), qubit QNN (paper) and with 3 uploads, classical [4,6,2,2] and the d=8 linear reference; fair_iris01_d40 protocol.",
   "experiment": {
     "name": "fair_mnist35_d40",
     "kind": "fair_comparison"

@@ -87,7 +87,7 @@ trace d at the trained theta. It therefore scales roughly with ||theta||^2.
 - **Evidence:** `results/phase04_tables.md`, `results/merlin_effective_dimension_d40.png`;
   LOG.md "Phase 04 Results".
 
-**Update 2026-10-24 (Amendments 2-3):** design, not photonics, set the low planned score.
+**Update 2026-10-24 (design searches 1-2, LOG.md Amendments 2-3):** design, not photonics, set the low planned score.
 - **Levers:** interleaved re-uploading lifts the photonic hard model from 0.49 to 0.76 at
   6 modes. Adding 8 modes and a spin-emitter cluster input reaches 0.877 (confirmed), within
   0.02 of the qubit QNN.
@@ -114,10 +114,10 @@ trace d at the trained theta. It therefore scales roughly with ||theta||^2.
 
 ## I-06: A native photonic design can exceed the qubit QNN's effective dimension, but only with an entangled emitter input and extra re-uploading (2026-10-28, Phase 04)
 
-- **Result:** at matched d=40, s_in=4 and theta ~ U[0,1], design A8 (10 modes, 5 photons,
+- **Result:** at matched d=40, s_in=4 and theta ~ U[0,1], the photonic 10-mode design (10 modes, 5 photons,
   linear-cluster emitter input, 3 interleaved data re-uploads) reaches 0.9096 / 0.9295 at
-  n = 1e5 / 1e6. The qubit QNN on the same draws reaches 0.8926 / 0.9165 with ZZ ×3 and
-  0.8952 / 0.9186 with ZZ ×2. Every gap is resolved at > 3 std (fresh draws 10-14).
+  n = 1e5 / 1e6. The qubit QNN on the same draws reaches 0.8926 / 0.9165 with 3 data uploads and
+  0.8952 / 0.9186 with the paper's 2. Every gap is resolved at > 3 std (fresh draws 10-14).
 - **Ingredients:**
   - **Entangled input:** separable inputs get *worse* on bigger chips (8 -> 12 modes:
     0.82 -> 0.75 at n=1e5), while cluster inputs stay at 0.88-0.89.
@@ -126,7 +126,7 @@ trace d at the trained theta. It therefore scales roughly with ||theta||^2.
 - **Limits:**
   - The advantage disappears with theta in [0, 2pi] (tie).
   - It is a Fisher-geometry capacity statement on ideal hardware, not a learning result.
-    When trained (Phase 05), A8 was the worst learner of all models (I-07).
+    When trained (Phase 05), the photonic 10-mode design was the worst learner of all models (I-07).
   - The photonic state space (2002 Fock states) is much larger than the qubit register (16).
 - **Evidence:** `outdir/run_20261025-102902`, `outdir/run_20261025-103433`,
   `outdir/run_20261025-103537`; LOG.md Amendment 4.
@@ -139,7 +139,7 @@ trace d at the trained theta. It therefore scales roughly with ||theta||^2.
 - **Paper claim C-04 reversed:** at d=8 on Iris 0/1 the linear [4,2] (0.009) and the paper's
   [4,1,1,1,2] (0.142) reach a lower training CE than the QNN (0.230). The paper's Table 1 ordering
   came from one shared lr and an all-positive classical init.
-- **Photonic A8:** at d=40 it has the highest normalized effective dimension of all models
+- **Photonic 10-mode design:** at d=40 it has the highest normalized effective dimension of all models
   (Phase 4: 0.910 vs 0.893 for the qubit QNN). Yet it has the worst held-out CE on both Iris tasks
   (0.44-0.46 vs 0.05-0.30), although its accuracy is >= 0.99: its outputs stay near 50/50.
 - **Lesson for photonic design searches:** effective dimension counts how many parameter
@@ -147,13 +147,13 @@ trace d at the trained theta. It therefore scales roughly with ||theta||^2.
   searches should also score output margin or a short training run, not effective dimension
   alone.
 
-- **Follow-up (Amendment 5):** the cause is an output-margin ceiling of the 10-mode cluster design
+- **Follow-up (design search 4, LOG.md Amendment 5):** the cause is an output-margin ceiling of the 10-mode cluster design
   (single-input max p ≈ 0.8), not parity readout in general. Searching capacity and loss together
-  selected B2 (6 modes / 3 photons, cluster input). B2 keeps the qubit-level effective dimension, and
+  selected the photonic 6-mode design (6 modes / 3 photons, cluster input). It keeps the qubit-level effective dimension, and
   on Iris 1/2 it beats both qubit QNNs and ties the classical models. It still loses on Iris 0/1.
   Adding modes or a cluster input moves a design along a capacity-versus-loss trade-off.
 
-- **Out-of-selection check (X3 breast cancer, X4 MNIST 3 vs 5):** B2 beats both qubit QNNs on both
+- **Out-of-selection check (breast cancer, MNIST 3 vs 5):** the photonic 6-mode design beats both qubit QNNs on both
   tasks (MNIST accuracy 0.824 vs 0.719), so the photonic-over-qubit result holds on tasks that
   played no part in selection. Every quantum model, photonic or qubit, stays far behind an 8-parameter
   linear classifier (MNIST 0.879). Among quantum models at matched d, a small cluster-input
@@ -172,9 +172,9 @@ Evidence: LOG.md "Phase 5 K1 result", "Phase 5 extension results X1, X2", "X3, X
   detection. Order meshes PS -> BS, and test that every parameter has a nonzero gradient.
 - **Score both capacity and margin:**
   - Before calling a design good, maximize p(target class) for a single input over all phases.
-    Values well below 1 (A8: about 0.8) predict a high cross-entropy floor whatever the capacity.
+    Values well below 1 (photonic 10-mode: about 0.8) predict a high cross-entropy floor whatever the capacity.
   - Larger chips and emitter cluster inputs trade margin for capacity.
-  - 6 modes / 3 photons with a cluster input was the best compromise found (B2).
+  - 6 modes / 3 photons with a cluster input was the best compromise found (the photonic 6-mode design).
 - **Detector modelling:** `ComputationSpace.UNBUNCHED` postselects and renormalizes (37-43%
   kept here). Threshold detection is FOCK simulation grouped by click pattern.
 - **Emitter states:** use `spin_gate(pi/2, 0)` everywhere for a linear cluster, or a pi/2
@@ -183,8 +183,8 @@ Evidence: LOG.md "Phase 5 K1 result", "Phase 5 extension results X1, X2", "X3, X
 - **Per-sample parameters:** passing trainable phases as an `input_parameters` group gives one
   parameter row per sample (needed for the Fisher). Columns follow name order, so name the
   parameters so that name order equals circuit order.
-- **Cost:** simulation time grows with the Fock dimension. B2 (56 states) ran at 1-3x the qubit
-  QNN's wall-clock; A8 (2,002 states) at 35-160x.
+- **Cost:** simulation time grows with the Fock dimension. The photonic 6-mode design (56 states) ran at 1-3x
+  the qubit QNN's wall-clock; the 10-mode one (2,002 states) at 35-160x.
 
 Evidence: LOG.md Amendments 2-5, "MerLin API Notes"; `results/phase04_design_screens.md`;
 `tests/test_photonic_merlin.py`; `ACTION_REQUIRED_SEND_TO_MERLIN_TEAM.md`.
@@ -202,9 +202,9 @@ Evidence: LOG.md Amendments 2-5, "MerLin API Notes"; `results/phase04_design_scr
   - the normalized Fisher spectrum looked stable while the unnormalized trace halved per qubit
     (I-02);
   - the Fisher-Rao norm followed ‖θ‖² (I-03).
-- **Confirm a selected design on data it was not selected on.** B2 was chosen on Iris 1/2. Its
-  advantage over the qubit QNN held (and grew) on breast cancer and MNIST 3 vs 5. A8's capacity
-  win did not survive the first learning test.
+- **Confirm a selected design on data it was not selected on.** The photonic 6-mode design was chosen on Iris 1/2. Its
+  advantage over the qubit QNN held (and grew) on breast cancer and MNIST 3 vs 5. The 10-mode design's
+  capacity win did not survive the first learning test.
 - **Read "x% randomized labels" literally:** overwriting x% with uniform labels changes only
   about x/2% of them.
 

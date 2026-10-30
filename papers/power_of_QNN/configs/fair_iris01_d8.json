@@ -1,5 +1,5 @@
 {
-  "description": "Phase 05 core comparison K1 (C-04, B-2): d=8 models on Iris classes 0/1 (all 100 points, training loss), torch Adam, init U[-1,1], 100 iterations; per-model lr from {0.01,0.03,0.1,0.3} selected on the mean final training CE of seeds 0-19, then fresh seeds 100-199.",
+  "description": "Phase 05 core comparison (claim C-04, baseline B-2): d=8 models on Iris classes 0/1 (all 100 points, training loss), torch Adam, init U[-1,1], 100 iterations; per-model lr from {0.01,0.03,0.1,0.3} selected on the mean final training CE of seeds 0-19, then fresh seeds 100-199.",
   "experiment": {
     "name": "fair_iris01_d8",
     "kind": "fair_comparison"

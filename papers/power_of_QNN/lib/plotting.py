@@ -10,6 +10,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
+from .display_names import model_label  # noqa: E402
+
 # Result-scope labels from the scientific-validity policy, stamped on every figure.
 SCOPE_LABELS = (
     "paper-accurate",
@@ -28,6 +30,13 @@ def _stamp(figure, scope: str | None) -> None:
             f"Unknown result scope {scope!r}; expected one of {SCOPE_LABELS}"
         )
     figure.text(0.99, 0.01, scope, ha="right", va="bottom", fontsize=8, color="gray")
+
+
+def _label(name: str, entry: dict) -> str:
+    """Readable model name, using the run's recorded mode count for photonic models."""
+    return model_label(
+        name, detailed=True, modes=entry.get("hardware", {}).get("modes")
+    )
 
 
 def plot_spectra(
@@ -63,7 +72,9 @@ def plot_spectra(
             align="edge",
             edgecolor="black",
         )
-        axis.set_title(f"{name} (d={eigenvalues.shape[1]})")
+        axis.set_title(
+            f"{_label(name, metrics['models'][name])} (d={eigenvalues.shape[1]})"
+        )
         axis.set_xlabel(f"eigenvalue size (bins = {bins})")
         axis.set_ylim(0.0, 1.0)
     axes[0][0].set_ylabel("normalised counts")
@@ -90,7 +101,11 @@ def plot_effective_dimension(
         mean = np.asarray(entry["normalized_effective_dimension_mean"])
         std = np.asarray(entry["normalized_effective_dimension_std"])
         axis.plot(
-            n_values, mean, marker="o", markersize=3, label=f"{name} (d={entry['d']})"
+            n_values,
+            mean,
+            marker="o",
+            markersize=3,
+            label=f"{_label(name, entry)} (d={entry['d']})",
         )
         axis.fill_between(n_values, mean - std, mean + std, alpha=0.2)
     for label, (reference_n, values) in (reference or {}).items():
@@ -123,7 +138,7 @@ def plot_training_losses(
         mean = np.asarray(entry["loss_curve_mean"])
         std = np.asarray(entry["loss_curve_std"])
         steps = np.arange(len(mean))
-        axis.plot(steps, mean, label=f"{name} (d={entry['d']})")
+        axis.plot(steps, mean, label=f"{_label(name, entry)} (d={entry['d']})")
         axis.fill_between(steps, mean - std, mean + std, alpha=0.15)
     for label, value in (reference or {}).items():
         axis.scatter([steps[-1]], [value], marker="x", color="black", zorder=5)
@@ -201,7 +216,7 @@ def plot_sensitivity(
             yerr=std,
             marker="o",
             capsize=3,
-            label=f"{name} (d={entry['d']})",
+            label=f"{_label(name, entry)} (d={entry['d']})",
         )
     axis.set_xlabel("number of parameter and data samples")
     axis.set_ylabel(f"normalised effective dimension (n = {n_value:.0e})")

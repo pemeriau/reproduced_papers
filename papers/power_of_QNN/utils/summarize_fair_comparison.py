@@ -1,4 +1,4 @@
-"""Phase 05 comparison tables from the fair-comparison runs (K1, X1-X4).
+"""Phase 05 comparison tables from the fair-comparison runs (Iris 0/1 at d=8, held-out tasks).
 
 Usage (from papers/power_of_QNN):
     python utils/summarize_fair_comparison.py --runs results/phase05_runs.json --output results/phase05_tables.md
@@ -8,8 +8,8 @@ list of run directories whose models are merged into one table (for example a Ph
 design rerun under a Phase 05 protocol). Merged runs must share the dataset, training,
 and comparison settings exactly. The rules are the ones frozen in LOG.md "Phase 5 Comparison Plan" before any run:
 
-- primary metric: final training CE when the lr was selected on the training split (K1),
-  otherwise test CE (X1-X4); lower is better;
+- primary metric: final training CE when the lr was selected on the training split (Iris 0/1
+  at d=8), otherwise test CE (held-out tasks); lower is better;
 - X beats Y only if mean(Y) - mean(X) exceeds both 0.005 and
   3 * sqrt(std_X^2 / n_X + std_Y^2 / n_Y); otherwise there is no resolved difference.
 
@@ -27,6 +27,7 @@ from pathlib import Path
 
 import numpy as np
 from figure_io import load_metrics
+from power_of_QNN.lib.display_names import experiment_label, model_label
 
 TIE_TOLERANCE = 0.005
 STANDARD_ERRORS = 3.0
@@ -97,12 +98,17 @@ def _decision(a: np.ndarray, b: np.ndarray) -> tuple[float, float, str]:
     return gap, threshold, verdict
 
 
+def _named(name: str) -> str:
+    """Readable model name followed by the code name its run artifacts use."""
+    return f"{model_label(name)} (`{name}`)"
+
+
 def _run_tables(experiment: str, run_dirs: list[Path]) -> tuple[list[str], dict]:
     metrics, owners = _merged_metrics(run_dirs)
     split = _primary_split(metrics)
     splits = metrics["comparison"]["splits"]
     lines = [
-        f"### {experiment} ("
+        f"### {experiment_label(experiment)}: `{experiment}` ("
         + ", ".join(f"`{run_dir.as_posix()}`" for run_dir in run_dirs)
         + ")",
         "",
@@ -140,7 +146,7 @@ def _run_tables(experiment: str, run_dirs: list[Path]) -> tuple[list[str], dict]
         seconds = sum(entry["grid_seconds"].values()) + entry["final_seconds"]
         count = metrics["comparison"]["final_seeds"]["count"]
         lines.append(
-            f"| {name} | {entry['d']} | {hardware_text} | {grid} | {entry['selected_lr']:g} ({tied}) | "
+            f"| {_named(name)} | {entry['d']} | {hardware_text} | {grid} | {entry['selected_lr']:g} ({tied}) | "
             + " | ".join(
                 f"{entry['final'][s]['loss_mean']:.4f} ± {entry['final'][s]['loss_std']:.4f}"
                 for s in splits
@@ -183,7 +189,7 @@ def _run_tables(experiment: str, run_dirs: list[Path]) -> tuple[list[str], dict]
             }
         )
         lines.append(
-            f"| {first} | {second} | {gap:+.4f} | {threshold:.4f} | {verdict} |"
+            f"| {_named(first)} | {_named(second)} | {gap:+.4f} | {threshold:.4f} | {verdict} |"
         )
     lines.append("")
     return lines, {

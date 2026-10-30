@@ -70,7 +70,8 @@ def _comparison_block(run_dirs: list[str], unify_b2: bool) -> dict:
         block.setdefault("comparison", metrics["comparison"])
         for name, entry in metrics["models"].items():
             arrays = np.load(Path(run_dir) / entry["arrays"])
-            # B2 was registered as B2_6m_cluster (Amendment 5) and B2_d40 (X3/X4): one
+            # The photonic 6-mode design was registered as B2_6m_cluster (design search 4) and
+            # B2_d40 (breast cancer, MNIST): one
             # design, so the Phase 05 blocks use one name. Screens keep their own names.
             key = "B2_d40" if unify_b2 and name.startswith("B2") else name
             block["models"][key] = {

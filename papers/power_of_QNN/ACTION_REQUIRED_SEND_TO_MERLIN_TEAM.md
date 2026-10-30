@@ -155,7 +155,7 @@ networks" (arXiv:2011.00027):
   - `lib/feedforward_merlin.py` (`summed_fisher_shared`);
   - `tests/test_photonic_merlin.py`: the feed-forward Fisher is checked against finite
     differences;
-  - `LOG.md`, Amendment 3 (tier-2 design T2c, about 98 min, dominated by the per-sample loop).
+  - `LOG.md`, Amendment 3 (the feed-forward design, about 98 min, dominated by the per-sample loop).
 - **Why it matters:** feed-forward is a distinctive photonic capability. Its API makes the
   standard per-sample analyses slow and error-prone.
 - **Suggested action:**

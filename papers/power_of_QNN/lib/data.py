@@ -9,7 +9,7 @@ Two real datasets sit behind one interface, ``build_dataloader(cfg, split)``:
 - ``iris_pair``: two Iris classes from ``iris.csv`` with a stratified
   train / validation / test split (Phase 05 fair comparison; not in the paper).
 - ``prepared_split``: a binary task already reduced to 4 inputs and split by
-  ``utils/prepare_datasets.py`` (Phase 05 extensions X3 breast cancer, X4 MNIST 3 vs 5).
+  ``utils/prepare_datasets.py`` (Phase 05 held-out tasks: breast cancer, MNIST 3 vs 5).
 
 The synthetic ``x ~ N(0, I)`` inputs of the Fisher estimates (Sec. 4.1) are not a
 dataset here: ``lib.fisher_experiments.draw_parameters_and_inputs`` draws them from

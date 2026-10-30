@@ -22,9 +22,9 @@ from figure_io import load_metrics, outputs  # noqa: E402
 from power_of_QNN.lib.plotting import _stamp  # noqa: E402
 
 FAMILIES = {
-    "qnn": "QNN (ZZ, reps 2)",
-    "easy_qnn": "easy model (Z, reps 1)",
-    "classical": "classical (authors' nets)",
+    "qnn": "qubit QNN (paper)",
+    "easy_qnn": "easy QNN (paper)",
+    "classical": "classical (paper's networks)",
 }
 
 

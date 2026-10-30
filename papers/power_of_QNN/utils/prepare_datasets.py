@@ -1,10 +1,10 @@
-"""Prepare the Phase 05 extension datasets X3 (breast cancer) and X4 (MNIST 3 vs 5).
+"""Prepare the Phase 05 held-out datasets: breast cancer and MNIST 3 vs 5.
 
 Usage (from the repository root):
     .venvs/reproduction/bin/python papers/power_of_QNN/utils/prepare_datasets.py --data-root data
 
 Both tasks are reduced to the 4 model inputs by the transform frozen in LOG.md (Amendment
-for X3/X4), always fit on the training split only:
+for both tasks), always fit on the training split only:
 
 1. breast cancer only: standardize with the training mean and std;
 2. PCA to 4 components (SVD of the centered training data; each component's sign is fixed

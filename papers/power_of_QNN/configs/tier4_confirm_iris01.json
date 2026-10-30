@@ -1,5 +1,5 @@
 {
-  "description": "MerLin adaptation (Phase 04), Amendment 5 CONFIRMATION: design B2 under the exact Phase 5 X1 (Iris 0/1) protocol; baselines are the Phase 5 fair_iris01_d40 run.",
+  "description": "MerLin adaptation (Phase 04), design search 4 (LOG.md Amendment 5) CONFIRMATION: the photonic 6-mode design (B2) under the exact Phase 05 held-out Iris 0/1 protocol; baselines are the fair_iris01_d40 run.",
   "experiment": {
     "name": "tier4_confirm_iris01",
     "kind": "fair_comparison"

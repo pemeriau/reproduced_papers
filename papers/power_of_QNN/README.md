@@ -64,6 +64,33 @@ The full claim and experiment inventories are in `LOG.md`.
 | C-06: generalization bound (Thms 3.2, B.5) | not tested (theory) |
 | C-10: QNN trains as well on IBM hardware | not tested (no QPU) |
 
+**Model and task names.** This README uses the descriptive names below. Configs, run folders and
+result tables use the code names in the second column (a `_d8` / `_d40` suffix gives the number
+of trainable parameters d); they are only needed to trace a number back to its run.
+
+| Name | Code names in runs | What it is |
+|---|---|---|
+| qubit QNN (paper) | `qnn`, `Q2_d8`, `Q2_d40`, `Q2_qubit_qnn` | The paper's quantum neural network: 4 qubits, ZZ feature map applied twice, then a trainable RealAmplitudes ansatz (RY layers, full CNOT entanglement), parity readout. |
+| qubit QNN, 3 uploads | `Q3_d8`, `Q3_d40`, `Q3_qubit_qnn_reps3` | The same circuit with the ZZ feature map applied 3 times: the qubit counterpart of the photonic designs that upload the data 3 times. |
+| easy QNN (paper) | `easy_qnn`, `easy_d8` | The paper's "easy" model: Z feature map (no entangling terms) and the same ansatz. |
+| classical [a,b,...] | `classical_41112`, `classical_4442`, `classical_4622` | Bias-free feed-forward network; the numbers are the layer widths from 4 inputs to 2 outputs. [4,1,1,1,2] and [4,4,4,2] are the paper's d=8 and d=40 networks; [4,6,2,2] is the best d=40 network of the classical topology search. |
+| linear [4,2] | `classical_42` | Linear softmax classifier (d=8). |
+| photonic planned design | `photonic_hard`, `photonic_easy`, `P0_hard`, `P0_easy` | The Phase 04 plan before any search: 6 modes, 3 photons in a Fock state, data encoded once, then a trainable mesh. |
+| **photonic 10-mode** | `A8_d8`, `A8_d40`, `A8_10m_cluster_reps3` (same circuit as `B6_10m_cluster`) | MerLin model: 10 optical modes, 5 photons from a cluster-state emitter, data uploaded 3 times between trainable meshes. Selected for the highest effective dimension. |
+| **photonic 6-mode** | `B2_d40`, `B2_6m_cluster` | The same design on 6 modes with 3 photons. Selected on effective dimension and validation loss together. |
+| other photonic candidates | `P*`, `T2*`, `A*`, `B*` | Candidates of the four photonic design searches: `P1`-`P7` = search 1 (circuit layout), `T` = search 2 (input states and encodings), `A` = search 3 (chip size and input), `B` = search 4 (capacity and loss together). `lib/display_names.py` spells each one out (modes, input, uploads). |
+
+| Task | Config | What is compared |
+|---|---|---|
+| Iris 0/1, d=8 (the paper's Table 1 task) | `fair_iris01_d8` | final training loss, learning rate tuned per model |
+| Iris 0/1 and Iris 1/2 (Iris 1/2 is not linearly separable), held-out, d=40 | `fair_iris01_d40`, `fair_iris12_d40` | test loss |
+| breast cancer and MNIST 3 vs 5, held-out, d=40 | `fair_bcancer_d40`, `fair_mnist35_d40` | test loss and accuracy; both reduced to 4 PCA features |
+
+B-1 and B-2 are the fair classical baselines: B-1 is the search over every d=40 classical
+topology (Phase 03), B-2 the learning-rate-tuned baselines of Phase 05. C-xx are the paper's
+claims (table above), A-0x ablations of the paper reproduction, and V-00 the check against the
+authors' cached arrays.
+
 **Implementation choices and deviations:**
 - **Framework:** the circuits are re-implemented as a batched PyTorch statevector simulator
   (no Qiskit), with Qiskit 0.23 conventions:
@@ -154,16 +181,16 @@ Full runs:
 | `training_iris_original.json`, `training_iris_finite_difference.json`, `training_iris_paper_domain.json` | Fig. 3b / Table 1; A-04; A-01 | ~1 min |
 | `generalisation_original.json` (`_reduced`) | Fig. 6 | minutes |
 | `effdim_d40_merlin*.json`, `spectrum_scaling_merlin.json`, `training_iris_merlin.json` | Phase 04 adaptation | 1-9 min |
-| `design_*`, `tier3_*`, `tier4_*` | Phase 04 design searches (Amendments 2-5) | 1-98 min |
-| `fair_iris01_d8.json` | Phase 05 K1 (C-04) | ~27 min |
-| `fair_iris01_d40.json`, `fair_iris12_d40.json` | Phase 05 X1, X2 | ~15 min each |
-| `fair_bcancer_d40.json`, `fair_mnist35_d40.json` | Phase 05 X3, X4 | ~7 / ~11 min |
-| `tier4_confirm_iris01.json`, `tier4_confirm_iris12.json` | B2 under the X1 / X2 protocol | <1 min each |
+| `design_*`, `tier3_*`, `tier4_*` | Phase 04 photonic design searches 1-4 | 1-98 min |
+| `fair_iris01_d8.json` | Phase 05, Iris 0/1 at d=8 (C-04) | ~27 min |
+| `fair_iris01_d40.json`, `fair_iris12_d40.json` | Phase 05, held-out Iris 0/1 and 1/2 | ~15 min each |
+| `fair_bcancer_d40.json`, `fair_mnist35_d40.json` | Phase 05, breast cancer and MNIST 3 vs 5 | ~7 / ~11 min |
+| `tier4_confirm_iris01.json`, `tier4_confirm_iris12.json` | photonic 6-mode under the held-out Iris 0/1 / 1/2 protocol | <1 min each |
 
 Times are for a laptop CPU (the Phase 03/04 GPU runs used NVIDIA L4s with `--device cuda`).
 
 **MerLin build:** configs with an emitter input (`input_kind: "cluster"` or `"ghz"`: the
-design searches, A8, B2 and every `fair_*` config) need `ML.EmitterState`. That is in the local
+design searches, the two photonic models and every `fair_*` config) need `ML.EmitterState`. That is in the local
 `photonic_engines` MerLin fork (0.5.0.dev0), not in PyPI `merlinquantum` 0.4.x. The other
 MerLin configs run with the PyPI build. The emitter tests are skipped when `EmitterState` is
 missing.
@@ -206,11 +233,11 @@ Every dataset lives under `data/power_of_QNN/` (repository data root, `--data-ro
 
 | Dataset | Use | Local path | Provenance and processing |
 |---|---|---|---|
-| Iris, classes 0/1 (rows 0:100, L2 row-normalized) | Fig. 3b / Table 1; Phase 05 K1 | `iris/iris_classes01_l2norm.npz` | scikit-learn 1.9.1 bundled `iris.csv`, the same `load_iris` path as the authors |
-| Iris pairs 0/1 and 1/2, split 30/10/10 per class | Phase 05 X1, X2 | `iris/iris.csv` (split on the fly) | stratified per-class permutation, `RandomState(0)`; L2 per row |
+| Iris, classes 0/1 (rows 0:100, L2 row-normalized) | Fig. 3b / Table 1; Phase 05 at d=8 | `iris/iris_classes01_l2norm.npz` | scikit-learn 1.9.1 bundled `iris.csv`, the same `load_iris` path as the authors |
+| Iris pairs 0/1 and 1/2, split 30/10/10 per class | Phase 05 held-out Iris | `iris/iris.csv` (split on the fly) | stratified per-class permutation, `RandomState(0)`; L2 per row |
 | make_blobs (1000 x 6, 2 centres, `random_state=42`, 60/40 split `random_state=0`) | Fig. 6 | `make_blobs/` | original generator, regenerated with scikit-learn 1.9.1 |
-| Breast Cancer Wisconsin (569 x 30) | Phase 05 X3 | `breast_cancer/bcancer_pca4_split_rs0.npz` | sklearn bundled copy. Stratified 60/20/20 per class, `RandomState(0)` -> 341 / 113 / 115. Standardize -> PCA 4 (80% of variance) -> min-max [0,1], all fit on train |
-| MNIST digits 3 vs 5 | Phase 05 X4 | `mnist/mnist35_pca4_train500_val500_test_rs0.npz` | OpenML `mnist_784` v1 (cached in `sources/openml/`, 16 MB). Train 500 + validation 500 drawn from the 60k training part, test = all 1,902 threes and fives of the 10k test part. Pixels/255 -> PCA 4 (34% of variance) -> min-max [0,1], fit on train |
+| Breast Cancer Wisconsin (569 x 30) | Phase 05 breast cancer | `breast_cancer/bcancer_pca4_split_rs0.npz` | sklearn bundled copy. Stratified 60/20/20 per class, `RandomState(0)` -> 341 / 113 / 115. Standardize -> PCA 4 (80% of variance) -> min-max [0,1], all fit on train |
+| MNIST digits 3 vs 5 | Phase 05 MNIST 3 vs 5 | `mnist/mnist35_pca4_train500_val500_test_rs0.npz` | OpenML `mnist_784` v1 (cached in `sources/openml/`, 16 MB). Train 500 + validation 500 drawn from the 60k training part, test = all 1,902 threes and fives of the 10k test part. Pixels/255 -> PCA 4 (34% of variance) -> min-max [0,1], fit on train |
 | N(0, I) inputs, uniform parameter samples | Fisher / effective dimension | generated per run (seeded) | — |
 | Authors' figure arrays (`.npy`) | numeric reference targets | `sources/effective_dimension/` (tag v1.0.0) | original |
 
@@ -309,35 +336,35 @@ photonic designs learn as well as their capacity suggests?
 **Protocol (frozen in `LOG.md` "Phase 5 Comparison Plan" before any run).** Every model gets:
 - the same Adam optimizer (torch defaults), init U[-1,1], 100 full-batch iterations;
 - its own lr from {0.01, 0.03, 0.1, 0.3}, selected on seeds 0-19 by the lowest mean final loss
-  (training loss for K1, validation loss otherwise; ties within 0.005 reported);
+  (training loss on Iris 0/1 at d=8, validation loss otherwise; ties within 0.005 reported);
 - final numbers on fresh seeds 100-199.
 
 A difference counts only if it exceeds both 0.005 and 3 standard errors.
 
 | Run | Task | d | Selection split | Metric | Label |
 |---|---|---|---|---|---|
-| K1 | Iris 0/1, all 100 points (the paper's setting) | 8 | train | final training CE | core (C-04) |
-| X1 / X2 | Iris 0/1 / Iris 1/2, 30/10/10 per class | 40 | validation | test CE | extension, advantage evidence |
-| X3 / X4 | breast cancer / MNIST 3 vs 5, 4 PCA features | 40 | validation | test CE (+ accuracy) | extension, advantage evidence |
+| Iris 0/1, d=8 | all 100 points (the paper's setting) | 8 | train | final training CE | core (C-04) |
+| Iris 0/1 and 1/2, held-out | 30/10/10 per class | 40 | validation | test CE | extension, advantage evidence |
+| breast cancer, MNIST 3 vs 5 | 4 PCA features | 40 | validation | test CE (+ accuracy) | extension, advantage evidence |
 
 Final cross-entropy, mean ± std over 100 fresh seeds; wall-clock in seconds for the lr grid
 plus the final seeds, on a laptop CPU:
 
-| Model | K1 train CE | X1 test CE | X2 test CE | X3 test CE (acc) | X4 test CE (acc) |
+| Model | Iris 0/1, d=8: train CE | Iris 0/1: test CE | Iris 1/2: test CE | Breast cancer: test CE (acc) | MNIST 3 vs 5: test CE (acc) |
 |---|---|---|---|---|---|
-| Qubit QNN, ZZ x2 (paper) | 0.2297 ± 0.0024 | 0.0489 ± 0.0016 | 0.3027 ± 0.0020 | 0.418 ± 0.007 (0.878) | 0.574 ± 0.005 (0.719) |
-| Qubit QNN, ZZ x3 | 0.2316 ± 0.0253 | 0.0558 ± 0.0024 | 0.2567 ± 0.0027 | 0.454 ± 0.008 (0.863) | 0.603 ± 0.004 (0.700) |
-| Easy QNN | 0.4250 ± 0.0269 | — | — | — | — |
-| Photonic B2 (6 modes / 3 photons) | — | 0.0924 ± 0.0436 | 0.2360 ± 0.0397 | 0.380 ± 0.028 (0.906) | 0.533 ± 0.021 (0.824) |
-| Photonic A8 (10 modes / 5 photons) | 0.6375 ± 0.0085 (d=8) | 0.4424 ± 0.0616 | 0.4562 ± 0.0623 | — | — |
+| Qubit QNN (paper) | 0.2297 ± 0.0024 | 0.0489 ± 0.0016 | 0.3027 ± 0.0020 | 0.418 ± 0.007 (0.878) | 0.574 ± 0.005 (0.719) |
+| Qubit QNN, 3 uploads | 0.2316 ± 0.0253 | 0.0558 ± 0.0024 | 0.2567 ± 0.0027 | 0.454 ± 0.008 (0.863) | 0.603 ± 0.004 (0.700) |
+| Easy QNN (paper) | 0.4250 ± 0.0269 | — | — | — | — |
+| Photonic 6-mode (3 photons) | — | 0.0924 ± 0.0436 | 0.2360 ± 0.0397 | 0.380 ± 0.028 (0.906) | 0.533 ± 0.021 (0.824) |
+| Photonic 10-mode (5 photons) | 0.6375 ± 0.0085 (d=8) | 0.4424 ± 0.0616 | 0.4562 ± 0.0623 | — | — |
 | Classical [4,1,1,1,2] (paper, d=8) | 0.1416 ± 0.2308 | — | — | — | — |
 | Classical [4,6,2,2] (B-1 selection) | — | 0.0083 ± 0.0560 | **0.2168 ± 0.1884** | 0.178 ± 0.035 (0.931) | 0.272 ± 0.082 (0.879) |
 | Linear [4,2] (d=8; unmatched reference at d=40) | **0.0089 ± 0.0019** | 0.0087 ± 0.0020 | 0.2482 ± 0.0345 | **0.164 ± 0.006** (0.930) | **0.240 ± 0.002** (0.879) |
 
-Wall-clock (s), X1 / X2 / X3 / X4:
+Wall-clock (s), held-out Iris 0/1 / Iris 1/2 / breast cancer / MNIST:
 - qubit QNNs: 23-26 / 24-26 / 96-105 / 127-138;
-- B2: 38 / 37 / 234 / 369;
-- A8: 826 / 831 (K1: 1569);
+- photonic 6-mode: 38 / 37 / 234 / 369;
+- photonic 10-mode: 826 / 831 (Iris 0/1 at d=8: 1569);
 - classical: <= 1 everywhere.
 
 ![Phase 05 fair comparison](results/phase05_fair_comparison.png)
@@ -349,10 +376,13 @@ Wall-clock (s), X1 / X2 / X3 / X4:
   ordering therefore rests first on its choice of the width-1 [4,1,1,1,2] chain, then on the
   shared lr 0.1 and the all-positive classical init.
 - **No learning advantage for any quantum model over classical baselines.** The classical models
-  are better on X1, X3 and X4. On X2 the best quantum models (B2, qubit ZZ x3) tie them.
-- **Among quantum models, B2 is the strongest learner.** It beats both qubit QNNs on X2, X3 and X4
+  are better on Iris 0/1, breast cancer and MNIST. On Iris 1/2 the best quantum models (photonic
+  6-mode, qubit QNN with 3 uploads) tie them.
+- **Among quantum models, the photonic 6-mode model is the strongest learner.** It beats both
+  qubit QNNs on Iris 1/2, breast cancer and MNIST
   (MNIST accuracy 0.824 vs 0.719) and loses to them only on the easy Iris 0/1.
-- **Capacity does not predict learning here.** A8 has the highest effective dimension and the
+- **Capacity does not predict learning here.** The photonic 10-mode model has the highest
+  effective dimension and the
   worst held-out loss; the linear model has the lowest capacity and the best loss.
 - **Learning-rate sweeps:** every model's full grid is in `results/phase05_tables.md`
   (5 runs x 4-6 models x 4 lr x 20 seeds; every sweep complete, coverage checked by the script).
@@ -382,11 +412,11 @@ classifier:
 
 | Step | Design (d=40) | ED n=1e5 | Learning (test CE) | Source |
 |---|---|---|---|---|
-| Planned | P0: 6 modes / 3 photons, encode then mesh | 0.467 | Iris 0/1 at d=8: 0.377 vs classical 0.389 (tie) | Phase 04 |
-| Amendment 2 | P4: interleaved re-uploading, 8 modes / 4 photons | 0.818 ± 0.009 | worse at d=8 (0.588) | `phase04_design_screens.md` |
-| Amendment 3 | T2a: P4 + cluster input; QLOQ[4]: the paper's QNN as 1 photon in 16 modes | 0.877; 0.896 (identical F_hat) | — | same |
-| Amendment 4 | **A8**: 10 modes / 5 photons, cluster input, 3 re-uploads | **0.9096 ± 0.0018** (beats qubit ZZ x3 0.8926, >3 std at n=1e3-1e6) | worst of all models (0.44-0.46) | same; Phase 05 |
-| Amendment 5 | **B2**: 6 modes / 3 photons, cluster input, 3 re-uploads | 0.8970 ± 0.0007 (>= qubit up to n=1e5, tie at 1e6) | best quantum model on X2-X4 | `phase04_amendment5_tables.md`; Phase 05 |
+| Planned | 6 modes / 3 photons, encode then mesh | 0.467 | Iris 0/1 at d=8: 0.377 vs classical 0.389 (tie) | Phase 04 |
+| Search 1: circuit layout | interleaved re-uploading, 8 modes / 4 photons | 0.818 ± 0.009 | worse at d=8 (0.588) | `phase04_design_screens.md` |
+| Search 2: input states and encodings | the same + cluster-state input; QLOQ: the paper's QNN as 1 photon in 16 modes | 0.877; 0.896 (identical F_hat) | — | same |
+| Search 3: chip size and input | **photonic 10-mode**: 10 modes / 5 photons, cluster input, 3 uploads | **0.9096 ± 0.0018** (beats the 3-upload qubit QNN 0.8926, >3 std at n=1e3-1e6) | worst of all models (0.44-0.46) | same; Phase 05 |
+| Search 4: capacity and loss together | **photonic 6-mode**: 6 modes / 3 photons, cluster input, 3 uploads | 0.8970 ± 0.0007 (>= qubit up to n=1e5, tie at 1e6) | best quantum model on Iris 1/2, breast cancer, MNIST | `phase04_amendment5_tables.md`; Phase 05 |
 
 **What carries over from the paper:**
 - **Encoding effect:** the hard encoding gives a higher effective dimension and a lower Iris loss
@@ -395,17 +425,17 @@ classifier:
   input vs x0.49).
 
 **What the design searches showed.** Every candidate of every search is listed in
-`results/phase04_design_screens.md`, with the predeclared rules in `LOG.md`, Amendments 2-5.
+`results/phase04_design_screens.md`, with the predeclared rules in `LOG.md` (searches 1-4 are recorded there as Amendments 2-5).
 - **Capacity levers:** data re-uploading interleaved with trainable meshes gave the largest gain.
   More modes and an emitter cluster input also help, and fixing dead mesh phases matters.
   Feed-forward and PNR readout do not help.
-- **Capacity versus confidence:** A8 cannot output confident probabilities. For a single input,
+- **Capacity versus confidence:** the photonic 10-mode model cannot output confident probabilities. For a single input,
   its best p(correct class) is about 0.8; the same chip with a Fock input reaches 0.999. Each added
-  mode or switch to a cluster input buys capacity and costs loss (Amendment 5 Pareto set: B1, B2,
-  B4, B6).
-- **B2 trade-off:** it was selected by a predeclared rule (qubit-level capacity, lowest validation
+  mode or switch to a cluster input buys capacity and costs loss (search 4: the designs not beaten on both are 6-mode Fock, 6-mode
+  cluster, 8-mode cluster and 10-mode cluster).
+- **Photonic 6-mode trade-off:** it was selected by a predeclared rule (qubit-level capacity, lowest validation
   loss on Iris 1/2). It was then confirmed on fresh draws, on fresh seeds, and on two tasks it was
-  never selected on (X3, X4).
+  never selected on (breast cancer, MNIST).
 - **QLOQ:** the paper's 4-qubit QNN *is* a single-photon interferometer, so its capacity needs no
   multi-photon quantum effect.
 
@@ -429,14 +459,14 @@ All MerLin results are exact simulations (shots = 0, float64) with:
 
 | Design | Computation space | Detector | Photons | Modes (Fock dim.) | Input state | Encoding | Measurement | Postselection | Simulator | Wall-clock | Seeds / draws |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Phase 04 planned hard/easy (P0) | FOCK | ideal threshold | 3 | 6 (56) | [1,0,1,0,1,0] | hard (2 reps) / easy, then mesh | parity of clicks, odd modes | none | MerLin, L4 GPU | ~80 s per Fisher run | draws 0-4; seeds 0-99 |
+| Phase 04 planned design, hard/easy | FOCK | ideal threshold | 3 | 6 (56) | [1,0,1,0,1,0] | hard (2 reps) / easy, then mesh | parity of clicks, odd modes | none | MerLin, L4 GPU | ~80 s per Fisher run | draws 0-4; seeds 0-99 |
 | UNBUNCHED ablation | UNBUNCHED | collision-free postselection, renormalized | 3 | 6 | same | same | same | success 0.374 (hard) / 0.433 (easy) | same | 79 s | draws 0-4 |
 | Scaling (s_in = 6, 8, 10) | FOCK | ideal threshold | 4 / 5 / 6 | 8 / 10 / 12 (up to 12,376) | [1,0,...] | hard / easy, d = 60-100 | same | none | same | 8.5 min | draws 0-2 |
-| A8 | FOCK | ideal threshold | 5 | 10 (2,002) | linear cluster from one spin emitter | hard, 3 re-uploads interleaved with a 20-MZI ps_bs mesh | same | none | MerLin, local CPU, photonic_engines fork | 61 s (Fisher); 826-1569 s (Phase 05 runs) | draws 10-14; seeds 0-19, 100-199 |
-| B2 | FOCK | ideal threshold | 3 | 6 (56) | linear cluster from one spin emitter | as A8 | same | none | same | 37-369 s (Phase 05 runs) | draws 10-14; seeds 0-19, 100-199 |
+| Photonic 10-mode | FOCK | ideal threshold | 5 | 10 (2,002) | linear cluster from one spin emitter | hard, 3 re-uploads interleaved with a 20-MZI ps_bs mesh | same | none | MerLin, local CPU, photonic_engines fork | 61 s (Fisher); 826-1569 s (Phase 05 runs) | draws 10-14; seeds 0-19, 100-199 |
+| Photonic 6-mode | FOCK | ideal threshold | 3 | 6 (56) | linear cluster from one spin emitter | as the 10-mode model | same | none | same | 37-369 s (Phase 05 runs) | draws 10-14; seeds 0-19, 100-199 |
 
 Per-run hardware tables for every MerLin run, including all design-search candidates, are in
-`LOG.md` ("Hardware-aware table", Amendment 4 and 5 tables).
+`LOG.md` ("Hardware-aware table", and the Amendment 4 and 5 tables for searches 3 and 4).
 
 ## Limitations
 
@@ -456,8 +486,8 @@ Per-run hardware tables for every MerLin run, including all design-search candid
   - 100 iterations for all models;
   - lr 0.3 at the grid edge for most models.
 
-  B2's training loss was still falling slowly at iteration 100 (about 0.002 per 10 iterations).
-- **Input reduction:** the X3/X4 tasks are reduced to 4 PCA features to fit the 4-input
+  The photonic 6-mode model's training loss was still falling slowly at iteration 100 (about 0.002 per 10 iterations).
+- **Input reduction:** the breast cancer and MNIST tasks are reduced to 4 PCA features to fit the 4-input
   models. MNIST 3 vs 5 keeps 34% of its variance.
 - **Not run:** the ablations proposed to explain the quantum-classical gap (trainable output
   scaling, trainable input weights, longer training). The explanations in `INSIGHTS.md` I-07

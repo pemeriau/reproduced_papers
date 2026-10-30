@@ -53,27 +53,27 @@ def main() -> None:
     n_values = np.asarray(qubit["n_values"][:11])
 
     figure, axis = plt.subplots(figsize=(7, 4.5))
-    _curve(axis, n_values, qubit["models"]["qnn"], "qubit QNN (Phase 3)", "-")
-    _curve(axis, n_values, qubit["models"]["easy_qnn"], "qubit easy (Phase 3)", "-")
+    _curve(axis, n_values, qubit["models"]["qnn"], "qubit QNN (paper)", "-")
+    _curve(axis, n_values, qubit["models"]["easy_qnn"], "easy QNN (paper)", "-")
     _curve(
         axis,
         n_values,
         qubit["models"]["classical_4442"],
-        "classical [4,4,4,2] (Phase 3)",
+        "classical [4,4,4,2] (paper)",
         "-",
     )
     _curve(
         axis,
         n_values,
         merlin["models"]["photonic_hard"],
-        "photonic hard, 6 modes/3 photons",
+        "photonic 6-mode planned design",
         "--",
     )
     _curve(
         axis,
         n_values,
         merlin["models"]["photonic_easy"],
-        "photonic easy, 6 modes/3 photons",
+        "photonic 6-mode planned design, easy encoding",
         "--",
     )
     if "effdim_d40_merlin_8modes" in runs:
@@ -82,14 +82,14 @@ def main() -> None:
             axis,
             n_values,
             wide["models"]["photonic_hard"],
-            "photonic hard, 8 modes/4 photons (diagnostic)",
+            "photonic 8-mode planned design (diagnostic)",
             ":",
         )
         _curve(
             axis,
             n_values,
             wide["models"]["photonic_easy"],
-            "photonic easy, 8 modes/4 photons (diagnostic)",
+            "photonic 8-mode planned design, easy encoding (diagnostic)",
             ":",
         )
     axis.set_xscale("log")
@@ -106,13 +106,13 @@ def main() -> None:
     scaling = load_metrics(runs["spectrum_scaling_merlin"])["models"]
     qubit_scaling = load_metrics(phase3["spectrum_scaling_original"])["models"]
     families = {
-        "photonic hard": [merlin["models"]["photonic_hard"]]
+        "photonic planned design": [merlin["models"]["photonic_hard"]]
         + [scaling[f"photonic_hard_s{s}"] for s in (6, 8, 10)],
-        "photonic easy": [merlin["models"]["photonic_easy"]]
+        "photonic planned design, easy encoding": [merlin["models"]["photonic_easy"]]
         + [scaling[f"photonic_easy_s{s}"] for s in (6, 8, 10)],
-        "qubit QNN": [qubit["models"]["qnn"]]
+        "qubit QNN (paper)": [qubit["models"]["qnn"]]
         + [qubit_scaling[f"qnn_s{s}"] for s in (6, 8, 10)],
-        "qubit easy": [qubit["models"]["easy_qnn"]]
+        "easy QNN (paper)": [qubit["models"]["easy_qnn"]]
         + [qubit_scaling[f"easy_qnn_s{s}"] for s in (6, 8, 10)],
     }
     figure, axis = plt.subplots(figsize=(6, 4))
@@ -155,11 +155,15 @@ def main() -> None:
     qubit_training = load_metrics(phase3["training_iris_original"])["models"]
     figure, axis = plt.subplots(figsize=(6, 4))
     for label, entry, style in [
-        ("qubit QNN (Phase 3)", qubit_training["qnn"], "-"),
-        ("qubit easy (Phase 3)", qubit_training["easy_qnn"], "-"),
-        ("classical [4,1,1,1,2] (Phase 3)", qubit_training["classical_41112"], "-"),
-        ("photonic hard", training["photonic_hard"], "--"),
-        ("photonic easy", training["photonic_easy"], "--"),
+        ("qubit QNN (paper)", qubit_training["qnn"], "-"),
+        ("easy QNN (paper)", qubit_training["easy_qnn"], "-"),
+        ("classical [4,1,1,1,2] (paper)", qubit_training["classical_41112"], "-"),
+        ("photonic 6-mode planned design", training["photonic_hard"], "--"),
+        (
+            "photonic 6-mode planned design, easy encoding",
+            training["photonic_easy"],
+            "--",
+        ),
     ]:
         mean, std = (
             np.asarray(entry["loss_curve_mean"]),

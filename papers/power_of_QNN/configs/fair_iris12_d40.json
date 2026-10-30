@@ -1,5 +1,5 @@
 {
-  "description": "Phase 05 extension X2 (advantage evidence): as X1 on Iris classes 1/2 (versicolor vs virginica, not linearly separable).",
+  "description": "Phase 05 held-out comparison on Iris 1/2 (advantage evidence): same protocol as fair_iris01_d40 on versicolor vs virginica, which are not linearly separable.",
   "experiment": {
     "name": "fair_iris12_d40",
     "kind": "fair_comparison"

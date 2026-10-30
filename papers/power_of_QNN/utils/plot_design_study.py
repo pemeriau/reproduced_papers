@@ -23,18 +23,19 @@ from figure_io import RESULTS_DIR, load_metrics  # noqa: E402
 from power_of_QNN.lib.plotting import _stamp  # noqa: E402
 
 N_INDEX = 6  # n = 1e5 in the paper grid
+# Design codes from LOG.md Amendments 2-3 (searches 1 and 2), spelled out for the figure.
 LABELS = {
-    "P0": "P0 planned (6m/3p)",
-    "P1": "P1 live mesh",
-    "P2": "P2 10m/5p",
-    "P3": "P3 interleaved",
-    "P4": "P4 interleaved 8m/4p",
-    "P5": "P5 + cluster in",
-    "P6": "P6 + GHZ in",
-    "P7": "P7 + PNR readout",
-    "T2a_P4cluster": "T2a P4 + cluster",
-    "T2b_qloq4": "T2b QLOQ[4] (1 photon)",
-    "T2c_feedforward": "T2c feed-forward",
+    "P0": "6-mode, encode then mesh (planned)",
+    "P1": "6-mode, encode then mesh, dead phases removed",
+    "P2": "10-mode, encode then mesh",
+    "P3": "6-mode, interleaved uploads",
+    "P4": "8-mode, interleaved uploads",
+    "P5": "6-mode, interleaved, cluster input",
+    "P6": "6-mode, interleaved, GHZ input",
+    "P7": "6-mode, interleaved, photon-number readout",
+    "T2a_P4cluster": "8-mode, interleaved, cluster input",
+    "T2b_qloq4": "qubit QNN as 1 photon in 16 modes (QLOQ)",
+    "T2c_feedforward": "feed-forward",
 }
 
 
@@ -78,7 +79,9 @@ def main() -> None:
                     yerr=std,
                     color=color,
                     capsize=2,
-                    label=f"{encoding} (confirmed, draws 5-9)" if key == "P4" else None,
+                    label=f"{encoding} encoding (confirmed, draws 5-9)"
+                    if key == "P4"
+                    else None,
                 )
             elif name in exploratory:
                 mean, std = _value(exploratory[name])
@@ -91,12 +94,14 @@ def main() -> None:
                     alpha=0.45,
                     hatch="//",
                     capsize=2,
-                    label=f"{encoding} (screening, draws 0-2)" if key == "P0" else None,
+                    label=f"{encoding} encoding (screening, draws 0-2)"
+                    if key == "P0"
+                    else None,
                 )
     for name, style, label in (
-        ("qnn", "-", "qubit QNN (Phase 3)"),
-        ("easy_qnn", "--", "qubit easy (Phase 3)"),
-        ("classical_4442", ":", "classical [4,4,4,2] (Phase 3)"),
+        ("qnn", "-", "qubit QNN (paper)"),
+        ("easy_qnn", "--", "easy QNN (paper)"),
+        ("classical_4442", ":", "classical [4,4,4,2] (paper)"),
     ):
         axis.axhline(
             _value(phase3[name])[0],

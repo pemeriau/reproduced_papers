@@ -1,5 +1,5 @@
 {
-  "description": "Phase 05 extension X1 (advantage evidence): d=40 models (plus the d=8 linear reference) on Iris classes 0/1 with a 30/10/10-per-class split; lr selected on the mean final validation CE of seeds 0-19, then fresh seeds 100-199 evaluated on the test split.",
+  "description": "Phase 05 held-out comparison on Iris 0/1 (advantage evidence): d=40 models (plus the d=8 linear reference) with a 30/10/10-per-class split; lr selected on the mean final validation CE of seeds 0-19, then fresh seeds 100-199 evaluated on the test split.",
   "experiment": {
     "name": "fair_iris01_d40",
     "kind": "fair_comparison"
