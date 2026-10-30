@@ -1,6 +1,7 @@
 # The power of quantum neural networks — Reproduction
 
-Status (2026-10-29): Phases 01-05 complete and audited.
+Status (2026-10-29): Phases 01-07 complete and audited. Start with `notebook.ipynb`, a runnable
+walkthrough of the claims and evidence (under a minute on CPU).
 - **Reproduced:** every paper experiment except the IBM hardware run (Phase 03).
 - **Photonic adaptation:** a native MerLin design was built and searched (Phase 04).
 - **Fair comparison:** the quantum and classical models were compared fairly on Iris and on
@@ -120,6 +121,18 @@ python implementation.py --paper power_of_QNN --config configs/reference_check.j
 # From inside papers/power_of_QNN
 python ../../implementation.py --config configs/effdim_d40_original.json
 ```
+
+Walkthrough notebook (fresh kernel, about 10 s on CPU):
+
+```bash
+cd papers/power_of_QNN
+jupyter nbconvert --to notebook --execute --inplace notebook.ipynb
+```
+
+It loads stored results from `results/notebook_data.json` (regenerate with
+`python utils/export_notebook_data.py --output results/notebook_data.json` when the run directories
+are present). The live photonic cells need the MerLin fork with `EmitterState` and are skipped
+otherwise.
 
 Quick smoke commands (seconds, not results):
 
@@ -243,7 +256,9 @@ Phase 03 (2026-10-21).
 - against every bias-free classical topology with d=40 and at most 3 hidden layers. The
   complete candidate table is in `results/phase03_tables.md` (B-1, 14 candidates x 3 draws,
   complete search). The best is [4,6,2,2], selected by mean rank 31.0 vs 26.1 for the
-  runner-up (no tie), with ed/d 0.55 at n=1e5, or 0.71 with ReLU and the [-1,1] domain.
+  runner-up (no tie), with ed/d 0.55 at n=1e5. With ReLU and the [-1,1] domain the rule
+  again selects [4,6,2,2] (ed/d 0.68); the highest classical value there is 0.71, for
+  [4,6,2,1,2], still below the easy model (0.77) and the QNN (0.90).
 
 Footnote 18's choice of [4,4,4,2] as the highest-rank classical network is therefore not reproduced.
 
@@ -329,8 +344,10 @@ Wall-clock (s), X1 / X2 / X3 / X4:
 
 - **C-04 is unsupported under fair tuning.** At d=8 on the paper's own task, both classical nets
   reach a lower training loss than the QNN (linear 0.009 vs QNN 0.230, resolved). The QNN value
-  matches Table 1. The paper's ordering comes from the shared lr 0.1 and the all-positive
-  classical init.
+  matches Table 1. Even under the paper's own protocol (lr 0.1, init U[0,1]), the linear [4,2]
+  reaches 0.041 against the QNN's 0.234 (live, 20 seeds, `notebook.ipynb` section 8). The paper's
+  ordering therefore rests first on its choice of the width-1 [4,1,1,1,2] chain, then on the
+  shared lr 0.1 and the all-positive classical init.
 - **No learning advantage for any quantum model over classical baselines.** The classical models
   are better on X1, X3 and X4. On X2 the best quantum models (B2, qubit ZZ x3) tie them.
 - **Among quantum models, B2 is the strongest learner.** It beats both qubit QNNs on X2, X3 and X4
